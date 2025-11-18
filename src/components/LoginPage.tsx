@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Icon from '@/components/ui/icon';
 import TelegramLoginButton from '@/components/TelegramLoginButton';
 
 interface LoginPageProps {
   onAuth: (user: any) => void;
+  error?: string | null;
 }
 
 const LoginPage = ({ onAuth, error }: LoginPageProps) => {
