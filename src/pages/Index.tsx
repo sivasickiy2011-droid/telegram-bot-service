@@ -41,26 +41,37 @@ const Index = () => {
   useEffect(() => {
     const checkTelegramWebApp = () => {
       const tg = (window as any).Telegram?.WebApp;
-      if (tg && tg.initDataUnsafe?.user) {
+      console.log('Telegram WebApp:', tg);
+      console.log('initDataUnsafe:', tg?.initDataUnsafe);
+      
+      if (tg) {
         setIsTelegramApp(true);
         tg.ready();
         tg.expand();
         
-        const tgUser = tg.initDataUnsafe.user;
-        const telegramUser = {
-          id: tgUser.id,
-          first_name: tgUser.first_name || '',
-          last_name: tgUser.last_name || '',
-          username: tgUser.username || '',
-          photo_url: tgUser.photo_url || ''
-        };
-        
-        handleTelegramAuth(telegramUser);
-        return;
+        if (tg.initDataUnsafe?.user) {
+          const tgUser = tg.initDataUnsafe.user;
+          console.log('Telegram user detected:', tgUser);
+          
+          const telegramUser = {
+            id: tgUser.id,
+            first_name: tgUser.first_name || '',
+            last_name: tgUser.last_name || '',
+            username: tgUser.username || '',
+            photo_url: tgUser.photo_url || ''
+          };
+          
+          handleTelegramAuth(telegramUser);
+          return;
+        } else {
+          console.log('No user in initDataUnsafe');
+        }
+      } else {
+        console.log('Telegram WebApp not found');
       }
     };
     
-    checkTelegramWebApp();
+    setTimeout(checkTelegramWebApp, 100);
     
     const savedUser = localStorage.getItem('telegram_user');
     if (savedUser) {
