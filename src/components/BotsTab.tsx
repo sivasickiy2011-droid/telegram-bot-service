@@ -81,9 +81,15 @@ const BotsTab = ({
             <DialogHeader>
               <DialogTitle>Создать нового бота</DialogTitle>
               <DialogDescription>
-                Выберите шаблон и настройте вашего бота
+                Бот будет отправлен на модерацию администратору перед запуском
               </DialogDescription>
             </DialogHeader>
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 mb-2">
+              <p className="text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
+                <Icon name="Shield" size={14} className="mt-0.5 flex-shrink-0" />
+                <span>Администратор проверит бота на соответствие правилам перед активацией</span>
+              </p>
+            </div>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="bot-name">Название бота</Label>
@@ -185,7 +191,19 @@ const BotsTab = ({
                   <p className="text-xs text-muted-foreground">{bot.template}</p>
                 </div>
               </div>
-              <div className={`w-3 h-3 rounded-full ${getStatusColor(bot.status)}`} />
+              {bot.moderationStatus === 'pending' ? (
+                <div className="flex items-center gap-1 text-xs text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded">
+                  <Icon name="Clock" size={12} />
+                  На проверке
+                </div>
+              ) : bot.moderationStatus === 'rejected' ? (
+                <div className="flex items-center gap-1 text-xs text-red-500 bg-red-500/10 px-2 py-1 rounded">
+                  <Icon name="XCircle" size={12} />
+                  Отклонен
+                </div>
+              ) : (
+                <div className={`w-3 h-3 rounded-full ${getStatusColor(bot.status)}`} />
+              )}
             </div>
             <div className="space-y-3 mb-4">
               <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
@@ -217,12 +235,39 @@ const BotsTab = ({
                 </div>
               </div>
             </div>
+            
+            {bot.moderationStatus === 'rejected' && bot.moderationReason && (
+              <div className="mb-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                <p className="text-xs font-medium text-red-500 mb-1">Причина отклонения:</p>
+                <p className="text-xs text-red-400">{bot.moderationReason}</p>
+              </div>
+            )}
+            
+            {bot.moderationStatus === 'pending' && (
+              <div className="mb-3 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                <p className="text-xs text-yellow-600 dark:text-yellow-500">
+                  <Icon name="AlertCircle" size={12} className="inline mr-1" />
+                  Бот проходит модерацию администратором
+                </p>
+              </div>
+            )}
+            
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                disabled={bot.moderationStatus === 'pending' || bot.moderationStatus === 'rejected'}
+              >
                 <Icon name="Settings" size={14} className="mr-1" />
                 Настройки
               </Button>
-              <Button variant="outline" size="sm" className="flex-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                disabled={bot.moderationStatus === 'pending' || bot.moderationStatus === 'rejected'}
+              >
                 <Icon name="BarChart3" size={14} className="mr-1" />
                 Статистика
               </Button>

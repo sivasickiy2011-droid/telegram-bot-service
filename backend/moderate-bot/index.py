@@ -6,19 +6,19 @@ from psycopg2.extras import RealDictCursor
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Business: Bot management API - CRUD operations for Telegram bots
-    Args: event - dict with httpMethod, body, queryStringParameters
+    Business: Bot moderation API - approve or reject bots by admin
+    Args: event - dict with httpMethod, body with bot_id, action, admin_id, reason
           context - object with request_id attribute
-    Returns: HTTP response dict with bot data
+    Returns: HTTP response with moderation result
     '''
-    method: str = event.get('httpMethod', 'GET')
+    method: str = event.get('httpMethod', 'POST')
     
     if method == 'OPTIONS':
         return {
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, X-User-Id, X-Auth-Token',
                 'Access-Control-Max-Age': '86400'
             },
@@ -41,26 +41,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     conn = psycopg2.connect(database_url)
     
     if method == 'GET':
-        user_id = event.get('queryStringParameters', {}).get('user_id')
-        
-        if not user_id:
-            conn.close()
-            return {
-                'statusCode': 400,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({'error': 'user_id parameter is required'}),
-                'isBase64Encoded': False
-            }
-        
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        query = f'''SELECT b.*, u.username as moderator_name 
+        query = '''SELECT b.*, u.username as owner_name 
                    FROM bots b 
-                   LEFT JOIN users u ON b.moderated_by = u.id 
-                   WHERE b.user_id = {user_id} 
-                   ORDER BY b.created_at DESC'''
+                   JOIN users u ON b.user_id = u.id 
+                   WHERE b.moderation_status = 'pending' 
+                   ORDER BY b.created_at ASC'''
         cursor.execute(query)
         bots = cursor.fetchall()
         cursor.close()
@@ -78,53 +64,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if method == 'POST':
         body_data = json.loads(event.get('body', '{}'))
-        user_id = body_data.get('user_id')
-        name = body_data.get('name')
-        telegram_token = body_data.get('telegram_token')
-        template = body_data.get('template', 'POLYTOPE')
-        
-        if not user_id or not name or not telegram_token:
-            conn.close()
-            return {
-                'statusCode': 400,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({'error': 'user_id, name, and telegram_token are required'}),
-                'isBase64Encoded': False
-            }
-        
-        # Escape strings for simple query
-        name_escaped = name.replace("'", "''")
-        token_escaped = telegram_token.replace("'", "''")
-        template_escaped = template.replace("'", "''")
-        
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        query = f'''INSERT INTO bots (user_id, name, telegram_token, template, status, moderation_status)
-               VALUES ({user_id}, '{name_escaped}', '{token_escaped}', '{template_escaped}', 'inactive', 'pending') RETURNING *'''
-        cursor.execute(query)
-        bot = cursor.fetchone()
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return {
-            'statusCode': 201,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({'bot': dict(bot)}, default=str),
-            'isBase64Encoded': False
-        }
-    
-    if method == 'PUT':
-        body_data = json.loads(event.get('body', '{}'))
         bot_id = body_data.get('bot_id')
-        status = body_data.get('status')
+        action = body_data.get('action')
+        admin_id = body_data.get('admin_id')
+        reason = body_data.get('reason', '')
         
-        if not bot_id:
+        if not bot_id or not action or not admin_id:
             conn.close()
             return {
                 'statusCode': 400,
@@ -132,26 +77,56 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'error': 'bot_id is required'}),
+                'body': json.dumps({'error': 'bot_id, action, and admin_id are required'}),
+                'isBase64Encoded': False
+            }
+        
+        if action not in ['approve', 'reject']:
+            conn.close()
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'error': 'action must be approve or reject'}),
                 'isBase64Encoded': False
             }
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        if not status:
+        # Проверяем, что пользователь - администратор
+        admin_check = f"SELECT role FROM users WHERE id = {admin_id}"
+        cursor.execute(admin_check)
+        admin_result = cursor.fetchone()
+        
+        if not admin_result or admin_result['role'] != 'admin':
+            cursor.close()
             conn.close()
             return {
-                'statusCode': 400,
+                'statusCode': 403,
                 'headers': {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'error': 'No fields to update'}),
+                'body': json.dumps({'error': 'Only admins can moderate bots'}),
                 'isBase64Encoded': False
             }
         
-        status_escaped = status.replace("'", "''")
-        query = f"UPDATE bots SET status = '{status_escaped}', updated_at = CURRENT_TIMESTAMP WHERE id = {bot_id} RETURNING *"
+        moderation_status = 'approved' if action == 'approve' else 'rejected'
+        new_bot_status = 'active' if action == 'approve' else 'inactive'
+        reason_escaped = reason.replace("'", "''")
+        
+        query = f'''UPDATE bots 
+                   SET moderation_status = '{moderation_status}',
+                       status = '{new_bot_status}',
+                       moderation_reason = '{reason_escaped}',
+                       moderated_by = {admin_id},
+                       moderated_at = CURRENT_TIMESTAMP,
+                       updated_at = CURRENT_TIMESTAMP
+                   WHERE id = {bot_id} 
+                   RETURNING *'''
+        
         cursor.execute(query)
         bot = cursor.fetchone()
         conn.commit()
@@ -175,7 +150,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps({'bot': dict(bot)}, default=str),
+            'body': json.dumps({'bot': dict(bot), 'message': f'Bot {moderation_status}'}, default=str),
             'isBase64Encoded': False
         }
     

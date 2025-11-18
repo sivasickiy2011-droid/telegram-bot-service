@@ -1,0 +1,27 @@
+{
+  "tests": [
+    {
+      "name": "Get pending bots for moderation",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "bots": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Approve bot (requires admin)",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "bot_id": 1,
+        "action": "approve",
+        "admin_id": 1,
+        "reason": "Bot verified, content is safe"
+      },
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}
