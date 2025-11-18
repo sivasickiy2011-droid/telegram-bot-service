@@ -277,7 +277,7 @@ const Index = () => {
       <div className="pt-24 pb-12">
         <div className="container mx-auto px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-            <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-2 h-12">
+            <TabsList className={`grid w-full max-w-2xl mx-auto h-12 ${currentUser?.role === 'admin' ? 'grid-cols-3' : 'grid-cols-2'}`}>
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <Icon name="LayoutDashboard" size={16} />
                 Дашборд
@@ -286,6 +286,12 @@ const Index = () => {
                 <Icon name="Bot" size={16} />
                 Мои боты
               </TabsTrigger>
+              {currentUser?.role === 'admin' && (
+                <TabsTrigger value="admin" className="flex items-center gap-2">
+                  <Icon name="Shield" size={16} />
+                  Админ-панель
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="dashboard">
@@ -309,6 +315,15 @@ const Index = () => {
                 currentUser={currentUser}
               />
             </TabsContent>
+
+            {currentUser?.role === 'admin' && (
+              <TabsContent value="admin">
+                <AdminTab 
+                  users={users} 
+                  getStatusColor={getStatusColor} 
+                />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </div>

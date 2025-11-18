@@ -104,18 +104,51 @@ const BotsTab = ({
                   onChange={(e) => setNewBotToken(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Шаблон</Label>
-                <div className="grid grid-cols-1 gap-2">
-                  <div className="p-4 rounded-lg border bg-muted/30">
-                    <div className="text-left">
-                      <p className="font-semibold">POLYTOPE</p>
-                      <p className="text-xs text-muted-foreground">Бот с QR-ключами и VIP-доступом</p>
-                      {!isAdmin && (
-                        <p className="text-xs text-orange-500 mt-1">Доступен в вашем тарифе</p>
-                      )}
+              <div className="space-y-3">
+                <Label>Шаблон POLYTOPE</Label>
+                <div className="p-4 rounded-lg border bg-gradient-to-br from-purple-500/10 to-blue-500/10">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-semibold text-lg mb-1">QR-ключи + VIP-доступ</p>
+                      <p className="text-xs text-muted-foreground">Бот для управления VIP-подписками через QR-коды</p>
                     </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start gap-2">
+                        <Icon name="Check" size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Генерация уникальных QR-ключей для пользователей</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Icon name="Check" size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Автоматическая активация VIP-статуса по ключу</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Icon name="Check" size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Управление сроками действия VIP-подписок</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Icon name="Check" size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Статистика использования ключей</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Icon name="Check" size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>Уведомления об окончании подписки</span>
+                      </div>
+                    </div>
+                    
+                    {!isAdmin && (
+                      <div className="pt-2 border-t border-border/50">
+                        <p className="text-xs text-orange-500 font-medium">✨ Включено в ваш тариф</p>
+                      </div>
+                    )}
                   </div>
+                </div>
+                
+                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
+                    <Icon name="Info" size={14} className="mt-0.5 flex-shrink-0" />
+                    <span>Для создания бота получите токен у @BotFather в Telegram. Отправьте команду /newbot и следуйте инструкциям.</span>
+                  </p>
                 </div>
               </div>
             </div>

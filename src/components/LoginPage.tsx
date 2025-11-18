@@ -114,6 +114,16 @@ const LoginPage = ({ onAuth, error }: LoginPageProps) => {
               </div>
             )}
           </div>
+          
+          <div className="pt-4 border-t border-border/50">
+            <a 
+              href="/admin" 
+              className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1"
+            >
+              <Icon name="Shield" size={12} />
+              Вход для администраторов
+            </a>
+          </div>
         </div>
       </Card>
     </div>
