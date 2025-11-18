@@ -188,13 +188,33 @@ const BotsTab = ({
               <div className={`w-3 h-3 rounded-full ${getStatusColor(bot.status)}`} />
             </div>
             <div className="space-y-3 mb-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Пользователи</span>
-                <span className="font-semibold">{bot.users}</span>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+                <p className="text-xs text-muted-foreground mb-2">Ссылка на бота:</p>
+                <a 
+                  href={`https://t.me/${bot.name.toLowerCase().replace(/\s+/g, '_')}_bot`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                >
+                  <Icon name="ExternalLink" size={12} />
+                  @{bot.name.toLowerCase().replace(/\s+/g, '_')}_bot
+                </a>
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Сообщения</span>
-                <span className="font-semibold">{bot.messages}</span>
+              
+              <div className="space-y-2 text-xs">
+                <p className="font-medium text-muted-foreground">Функции бота:</p>
+                <div className="flex items-center gap-2">
+                  <Icon name="QrCode" size={14} className="text-purple-500" />
+                  <span>Генерация QR-ключей</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Icon name="Star" size={14} className="text-yellow-500" />
+                  <span>VIP-подписки</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Icon name="Users" size={14} className="text-blue-500" />
+                  <span>{bot.users} пользователей</span>
+                </div>
               </div>
             </div>
             <div className="flex gap-2">

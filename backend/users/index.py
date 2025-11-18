@@ -93,7 +93,32 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if method == 'GET':
-        telegram_id = event.get('queryStringParameters', {}).get('telegram_id')
+        params = event.get('queryStringParameters', {}) or {}
+        telegram_id = params.get('telegram_id')
+        get_all = params.get('all')
+        
+        if get_all == 'true':
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            query = '''SELECT u.id, u.telegram_id, u.username, u.first_name, u.last_name, 
+                       u.role, u.created_at, COUNT(b.id) as bots_count 
+                       FROM users u 
+                       LEFT JOIN bots b ON u.id = b.user_id 
+                       GROUP BY u.id 
+                       ORDER BY u.created_at DESC'''
+            cursor.execute(query)
+            users = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'users': [dict(user) for user in users]}, default=str),
+                'isBase64Encoded': False
+            }
         
         if not telegram_id:
             conn.close()

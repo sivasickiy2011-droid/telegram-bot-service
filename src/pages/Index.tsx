@@ -18,13 +18,7 @@ interface Bot {
   template: string;
 }
 
-interface User {
-  id: string;
-  name: string;
-  username: string;
-  botsCount: number;
-  status: 'active' | 'pending';
-}
+
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -217,11 +211,7 @@ const Index = () => {
     });
   };
 
-  const [users] = useState<User[]>([
-    { id: '1', name: 'Иван Петров', username: '@ivanpetrov', botsCount: 2, status: 'active' },
-    { id: '2', name: 'Мария Сидорова', username: '@mariasid', botsCount: 1, status: 'pending' },
-    { id: '3', name: 'Алексей Смирнов', username: '@alexsmirnov', botsCount: 3, status: 'active' },
-  ]);
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -297,7 +287,6 @@ const Index = () => {
             <TabsContent value="dashboard">
               <DashboardTab 
                 bots={bots} 
-                users={users} 
                 getStatusColor={getStatusColor} 
               />
             </TabsContent>
@@ -319,7 +308,6 @@ const Index = () => {
             {currentUser?.role === 'admin' && (
               <TabsContent value="admin">
                 <AdminTab 
-                  users={users} 
                   getStatusColor={getStatusColor} 
                 />
               </TabsContent>

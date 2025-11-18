@@ -81,7 +81,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         admin_user = {
-            'id': 500136108,
+            'id': 4,
             'telegram_id': 500136108,
             'username': 'Reger84',
             'first_name': 'Ivanickiy',

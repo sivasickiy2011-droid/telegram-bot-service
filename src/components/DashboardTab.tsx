@@ -12,21 +12,12 @@ interface Bot {
   template: string;
 }
 
-interface User {
-  id: string;
-  name: string;
-  username: string;
-  botsCount: number;
-  status: 'active' | 'pending';
-}
-
 interface DashboardTabProps {
   bots: Bot[];
-  users: User[];
   getStatusColor: (status: string) => string;
 }
 
-const DashboardTab = ({ bots, users, getStatusColor }: DashboardTabProps) => {
+const DashboardTab = ({ bots, getStatusColor }: DashboardTabProps) => {
   const stats = [
     { label: 'Всего ботов', value: bots.length.toString(), change: '+' + bots.length, icon: 'Bot', gradient: 'gradient-purple' },
     { label: 'Активных ботов', value: bots.filter(b => b.status === 'active').length.toString(), change: '+' + bots.filter(b => b.status === 'active').length, icon: 'Users', gradient: 'gradient-blue' },
