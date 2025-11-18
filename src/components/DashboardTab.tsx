@@ -77,26 +77,24 @@ const DashboardTab = ({ bots, getStatusColor }: DashboardTabProps) => {
 
         <Card className="p-6 glass-card">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold">Последние пользователи</h3>
+            <h3 className="text-xl font-bold">Популярные шаблоны</h3>
             <Button variant="outline" size="sm">
-              <Icon name="UserPlus" size={14} />
+              <Icon name="TrendingUp" size={14} />
             </Button>
           </div>
           <div className="space-y-4">
-            {users.slice(0, 3).map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+            {['Поддержка', 'Магазин', 'Блог'].map((template, idx) => (
+              <div key={idx} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full gradient-blue flex items-center justify-center text-white font-bold">
-                    {user.name[0]}
+                  <div className="w-10 h-10 rounded-full gradient-purple flex items-center justify-center text-white font-bold">
+                    {template[0]}
                   </div>
                   <div>
-                    <p className="font-semibold">{user.name}</p>
-                    <p className="text-sm text-muted-foreground">{user.username}</p>
+                    <p className="font-semibold">{template}</p>
+                    <p className="text-sm text-muted-foreground">{bots.filter(b => b.template === template.toLowerCase()).length} ботов</p>
                   </div>
                 </div>
-                <Badge className={getStatusColor(user.status)}>
-                  {user.status === 'active' ? 'Активен' : 'Ожидает'}
-                </Badge>
+                <Icon name="ChevronRight" size={20} className="text-muted-foreground" />
               </div>
             ))}
           </div>
