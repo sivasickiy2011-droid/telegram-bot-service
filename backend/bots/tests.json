@@ -1,0 +1,39 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "Get bots for user",
+      "method": "GET",
+      "path": "/?user_id=1",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "bots": []
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create new bot",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "user_id": 1,
+        "name": "Test Bot",
+        "telegram_token": "123:ABC",
+        "template": "POLYTOPE"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "bot": {
+          "name": "Test Bot"
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import TelegramLoginButton from '@/components/TelegramLoginButton';
+import { createOrUpdateUser, getBots, createBot } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface Bot {
   id: string;
@@ -42,11 +45,118 @@ interface User {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [bots, setBots] = useState<Bot[]>([
-    { id: '1', name: 'POLYTOPE Shop Bot', status: 'active', users: 1234, messages: 5678, template: 'POLYTOPE' },
-    { id: '2', name: 'Support Bot', status: 'active', users: 456, messages: 2341, template: 'POLYTOPE' },
-    { id: '3', name: 'Promo Bot', status: 'inactive', users: 89, messages: 234, template: 'POLYTOPE' },
-  ]);
+  const [bots, setBots] = useState<Bot[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [newBotName, setNewBotName] = useState('');
+  const [newBotToken, setNewBotToken] = useState('');
+  const [isCreatingBot, setIsCreatingBot] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('telegram_user');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      loadUserBots(user.id);
+    }
+  }, []);
+
+  const loadUserBots = async (userId: number) => {
+    try {
+      const response = await getBots(userId);
+      setBots(response.bots.map((bot: any) => ({
+        id: bot.id.toString(),
+        name: bot.name,
+        status: bot.status,
+        users: bot.total_users,
+        messages: bot.total_messages,
+        template: bot.template,
+      })));
+    } catch (error) {
+      console.error('Failed to load bots:', error);
+    }
+  };
+
+  const handleTelegramAuth = async (telegramUser: any) => {
+    try {
+      const response = await createOrUpdateUser({
+        telegram_id: telegramUser.id,
+        username: telegramUser.username || '',
+        first_name: telegramUser.first_name || '',
+        last_name: telegramUser.last_name || '',
+        photo_url: telegramUser.photo_url || '',
+      });
+
+      const user = response.user;
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      localStorage.setItem('telegram_user', JSON.stringify(user));
+      
+      toast({
+        title: 'Авторизация успешна',
+        description: `Добро пожаловать, ${user.first_name}!`,
+      });
+
+      loadUserBots(user.id);
+    } catch (error) {
+      toast({
+        title: 'Ошибка авторизации',
+        description: 'Не удалось авторизоваться через Telegram',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCreateBot = async () => {
+    if (!newBotName || !newBotToken) {
+      toast({
+        title: 'Ошибка',
+        description: 'Заполните все поля',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsCreatingBot(true);
+    try {
+      await createBot({
+        user_id: currentUser.id,
+        name: newBotName,
+        telegram_token: newBotToken,
+        template: 'POLYTOPE',
+      });
+
+      toast({
+        title: 'Бот создан',
+        description: 'Ваш бот успешно добавлен',
+      });
+
+      setNewBotName('');
+      setNewBotToken('');
+      loadUserBots(currentUser.id);
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось создать бота',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreatingBot(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('telegram_user');
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    setBots([]);
+    toast({
+      title: 'Выход выполнен',
+      description: 'До встречи!',
+    });
+  };
 
   const [users] = useState<User[]>([
     { id: '1', name: 'Иван Петров', username: '@ivanpetrov', botsCount: 2, status: 'active' },
@@ -55,11 +165,42 @@ const Index = () => {
   ]);
 
   const stats = [
-    { label: 'Всего ботов', value: '12', change: '+3', icon: 'Bot', gradient: 'gradient-purple' },
-    { label: 'Активных пользователей', value: '1.8K', change: '+12%', icon: 'Users', gradient: 'gradient-blue' },
-    { label: 'Сообщений сегодня', value: '8.2K', change: '+23%', icon: 'MessageSquare', gradient: 'gradient-orange' },
-    { label: 'Ключей выдано', value: '456', change: '+45', icon: 'Key', gradient: 'gradient-purple' },
+    { label: 'Всего ботов', value: bots.length.toString(), change: '+' + bots.length, icon: 'Bot', gradient: 'gradient-purple' },
+    { label: 'Активных ботов', value: bots.filter(b => b.status === 'active').length.toString(), change: '+' + bots.filter(b => b.status === 'active').length, icon: 'Users', gradient: 'gradient-blue' },
+    { label: 'Всего пользователей', value: bots.reduce((sum, b) => sum + b.users, 0).toString(), change: '+23%', icon: 'MessageSquare', gradient: 'gradient-orange' },
+    { label: 'Всего сообщений', value: bots.reduce((sum, b) => sum + b.messages, 0).toString(), change: '+45', icon: 'Key', gradient: 'gradient-purple' },
   ];
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="max-w-md w-full p-8 glass-card animate-scale-in">
+          <div className="text-center space-y-6">
+            <div className="w-20 h-20 mx-auto rounded-2xl gradient-purple flex items-center justify-center">
+              <Icon name="Bot" size={48} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold mb-2">TeleBot Platform</h1>
+              <p className="text-muted-foreground">
+                Управляйте вашими Telegram-ботами в одном месте
+              </p>
+            </div>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Войдите через Telegram, чтобы начать
+              </p>
+              <div className="flex justify-center">
+                <TelegramLoginButton
+                  botName="YOUR_BOT_NAME"
+                  onAuth={handleTelegramAuth}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -91,13 +232,15 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm">
-                <Icon name="Bell" size={16} className="mr-2" />
-                Уведомления
-              </Button>
-              <Button variant="outline" size="sm">
-                <Icon name="User" size={16} className="mr-2" />
-                Профиль
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/30">
+                <div className="w-8 h-8 rounded-full gradient-purple flex items-center justify-center text-white text-sm font-bold">
+                  {currentUser?.first_name?.[0] || 'U'}
+                </div>
+                <span className="text-sm font-medium">{currentUser?.first_name}</span>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <Icon name="LogOut" size={16} className="mr-2" />
+                Выход
               </Button>
             </div>
           </div>
@@ -223,11 +366,22 @@ const Index = () => {
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
                         <Label htmlFor="bot-name">Название бота</Label>
-                        <Input id="bot-name" placeholder="Мой крутой бот" />
+                        <Input 
+                          id="bot-name" 
+                          placeholder="Мой крутой бот" 
+                          value={newBotName}
+                          onChange={(e) => setNewBotName(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="bot-token">Telegram Bot Token</Label>
-                        <Input id="bot-token" placeholder="123456:ABC-DEF..." type="password" />
+                        <Input 
+                          id="bot-token" 
+                          placeholder="123456:ABC-DEF..." 
+                          type="password"
+                          value={newBotToken}
+                          onChange={(e) => setNewBotToken(e.target.value)}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Шаблон</Label>
@@ -242,8 +396,16 @@ const Index = () => {
                       </div>
                     </div>
                     <div className="flex justify-end gap-3">
-                      <Button variant="outline">Отмена</Button>
-                      <Button className="gradient-purple border-0">Создать</Button>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">Отмена</Button>
+                      </DialogTrigger>
+                      <Button 
+                        className="gradient-purple border-0" 
+                        onClick={handleCreateBot}
+                        disabled={isCreatingBot}
+                      >
+                        {isCreatingBot ? 'Создание...' : 'Создать'}
+                      </Button>
                     </div>
                   </DialogContent>
                 </Dialog>

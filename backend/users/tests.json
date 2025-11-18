@@ -1,0 +1,29 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "Create user with telegram data",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "telegram_id": 123456789,
+        "username": "testuser",
+        "first_name": "Test",
+        "last_name": "User"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "user": {
+          "telegram_id": 123456789
+        }
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

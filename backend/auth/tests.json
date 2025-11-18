@@ -1,0 +1,29 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": "",
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "Return error for invalid auth data",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "authData": {
+          "id": 123456789,
+          "first_name": "Test",
+          "hash": "test_hash"
+        }
+      },
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
