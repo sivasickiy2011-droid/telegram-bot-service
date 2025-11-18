@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import TelegramLoginButton from '@/components/TelegramLoginButton';
 
@@ -11,6 +13,8 @@ interface LoginPageProps {
 
 const LoginPage = ({ onAuth, error }: LoginPageProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showDevForm, setShowDevForm] = useState(false);
+  const [devUserId, setDevUserId] = useState('');
 
   const handleAuth = async (user: any) => {
     setIsLoading(true);
@@ -19,6 +23,20 @@ const LoginPage = ({ onAuth, error }: LoginPageProps) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDevAuth = async () => {
+    if (!devUserId) return;
+    
+    const mockUser = {
+      id: parseInt(devUserId),
+      first_name: 'Test',
+      last_name: 'User',
+      username: 'testuser',
+      photo_url: ''
+    };
+    
+    await handleAuth(mockUser);
   };
 
   return (
@@ -49,12 +67,46 @@ const LoginPage = ({ onAuth, error }: LoginPageProps) => {
                 <Icon name="Loader2" size={24} className="animate-spin text-primary" />
                 <span className="ml-2 text-sm text-muted-foreground">Авторизация...</span>
               </div>
-            ) : (
-              <div className="flex justify-center">
-                <TelegramLoginButton
-                  botName="generickeytest"
-                  onAuth={handleAuth}
+            ) : showDevForm ? (
+              <div className="space-y-3">
+                <Input
+                  type="number"
+                  placeholder="Введите Telegram ID"
+                  value={devUserId}
+                  onChange={(e) => setDevUserId(e.target.value)}
                 />
+                <Button 
+                  className="w-full gradient-purple border-0" 
+                  onClick={handleDevAuth}
+                  disabled={!devUserId}
+                >
+                  Войти для теста
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => setShowDevForm(false)}
+                >
+                  Назад к Telegram виджету
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex justify-center">
+                  <TelegramLoginButton
+                    botName="generickeytest"
+                    onAuth={handleAuth}
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => setShowDevForm(true)}
+                >
+                  Тестовый вход (разработка)
+                </Button>
               </div>
             )}
             <div className="text-xs text-muted-foreground space-y-1">
