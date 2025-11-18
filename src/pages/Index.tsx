@@ -34,6 +34,7 @@ const Index = () => {
   const [newBotName, setNewBotName] = useState('');
   const [newBotToken, setNewBotToken] = useState('');
   const [isCreatingBot, setIsCreatingBot] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,6 +64,13 @@ const Index = () => {
   };
 
   const handleTelegramAuth = async (telegramUser: any) => {
+    setAuthError(null);
+    
+    if (!telegramUser || !telegramUser.id) {
+      setAuthError('Не удалось получить данные от Telegram. Попробуйте еще раз.');
+      return;
+    }
+
     try {
       const response = await createOrUpdateUser({
         telegram_id: telegramUser.id,
@@ -71,6 +79,10 @@ const Index = () => {
         last_name: telegramUser.last_name || '',
         photo_url: telegramUser.photo_url || '',
       });
+
+      if (!response || !response.user) {
+        throw new Error('Некорректный ответ от сервера');
+      }
 
       const user = response.user;
       setCurrentUser(user);
@@ -82,11 +94,25 @@ const Index = () => {
         description: `Добро пожаловать, ${user.first_name}!`,
       });
 
-      loadUserBots(user.id);
-    } catch (error) {
+      await loadUserBots(user.id);
+    } catch (error: any) {
+      console.error('Auth error:', error);
+      
+      let errorMessage = 'Не удалось авторизоваться. Попробуйте позже.';
+      
+      if (error.message?.includes('fetch')) {
+        errorMessage = 'Ошибка соединения с сервером. Проверьте интернет-соединение.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'Превышено время ожидания. Попробуйте еще раз.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setAuthError(errorMessage);
+      
       toast({
         title: 'Ошибка авторизации',
-        description: 'Не удалось авторизоваться через Telegram',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
