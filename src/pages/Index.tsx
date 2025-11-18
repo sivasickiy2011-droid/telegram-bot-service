@@ -120,13 +120,17 @@ const Index = () => {
       }
 
       const user = response.user;
+      console.log('User logged in:', user);
+      console.log('User role:', user.role);
+      
       setCurrentUser(user);
       setIsAuthenticated(true);
       localStorage.setItem('telegram_user', JSON.stringify(user));
       
+      const roleText = user.role === 'admin' ? ' (Администратор)' : '';
       toast({
         title: 'Авторизация успешна',
-        description: `Добро пожаловать, ${user.first_name}!`,
+        description: `Добро пожаловать, ${user.first_name}${roleText}!`,
       });
 
       await loadUserBots(user.id);
@@ -158,6 +162,17 @@ const Index = () => {
       toast({
         title: 'Ошибка',
         description: 'Заполните все поля',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const isAdmin = currentUser?.role === 'admin';
+    
+    if (!isAdmin && bots.length >= 1) {
+      toast({
+        title: 'Лимит достигнут',
+        description: 'Вы можете создать только одного бота',
         variant: 'destructive',
       });
       return;
@@ -291,6 +306,7 @@ const Index = () => {
                 setNewBotToken={setNewBotToken}
                 handleCreateBot={handleCreateBot}
                 getStatusColor={getStatusColor}
+                currentUser={currentUser}
               />
             </TabsContent>
           </Tabs>

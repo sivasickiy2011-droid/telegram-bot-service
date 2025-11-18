@@ -30,6 +30,7 @@ interface BotsTabProps {
   setNewBotToken: (value: string) => void;
   handleCreateBot: () => void;
   getStatusColor: (status: string) => string;
+  currentUser?: any;
 }
 
 const BotsTab = ({
@@ -41,9 +42,25 @@ const BotsTab = ({
   setNewBotToken,
   handleCreateBot,
   getStatusColor,
+  currentUser,
 }: BotsTabProps) => {
+  const isAdmin = currentUser?.role === 'admin';
+  const canCreateBot = isAdmin || bots.length < 1;
   return (
     <div className="space-y-6 animate-fade-in">
+      {!isAdmin && bots.length >= 1 && (
+        <Card className="p-4 bg-muted/30 border-orange-500/50">
+          <div className="flex items-start gap-3">
+            <Icon name="Info" size={20} className="text-orange-500 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium mb-1">Базовый тариф</p>
+              <p className="text-muted-foreground">
+                Вы можете создать только одного бота с шаблоном POLYTOPE. Для расширенных возможностей обратитесь к администратору.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold">Мои боты</h2>
@@ -51,7 +68,11 @@ const BotsTab = ({
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            <Button className="gradient-purple border-0">
+            <Button 
+              className="gradient-purple border-0" 
+              disabled={!canCreateBot}
+              title={!canCreateBot ? 'Вы достигли лимита ботов' : ''}
+            >
               <Icon name="Plus" size={16} className="mr-2" />
               Создать бота
             </Button>
@@ -86,12 +107,15 @@ const BotsTab = ({
               <div className="space-y-2">
                 <Label>Шаблон</Label>
                 <div className="grid grid-cols-1 gap-2">
-                  <Button variant="outline" className="justify-start h-auto p-4">
+                  <div className="p-4 rounded-lg border bg-muted/30">
                     <div className="text-left">
                       <p className="font-semibold">POLYTOPE</p>
                       <p className="text-xs text-muted-foreground">Бот с QR-ключами и VIP-доступом</p>
+                      {!isAdmin && (
+                        <p className="text-xs text-orange-500 mt-1">Доступен в вашем тарифе</p>
+                      )}
                     </div>
-                  </Button>
+                  </div>
                 </div>
               </div>
             </div>
