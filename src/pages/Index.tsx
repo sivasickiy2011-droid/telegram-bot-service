@@ -189,7 +189,7 @@ const Index = () => {
   };
 
   if (!isAuthenticated) {
-    return <LoginPage onAuth={handleTelegramAuth} />;
+    return <LoginPage onAuth={handleTelegramAuth} error={authError} />;
   }
 
   return (
