@@ -1,0 +1,49 @@
+{
+  "tests": [
+    {
+      "name": "Valid admin login",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "username": "Ivanickiy",
+        "password": "Xw1Utoce1!?!"
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true,
+        "user": {
+          "role": "admin"
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Invalid password",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "username": "Ivanickiy",
+        "password": "wrongpassword"
+      },
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "Invalid credentials"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Invalid username",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "username": "wronguser",
+        "password": "Xw1Utoce1!?!"
+      },
+      "expectedStatus": 401,
+      "expectedBody": {
+        "error": "Invalid credentials"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

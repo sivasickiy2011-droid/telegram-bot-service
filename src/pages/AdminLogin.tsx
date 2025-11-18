@@ -22,17 +22,18 @@ const AdminLogin = () => {
     setIsLoading(true);
 
     try {
-      if (username === 'Ivanickiy' && password === 'admin123') {
-        const adminUser = {
-          id: 500136108,
-          telegram_id: 500136108,
-          username: 'Reger84',
-          first_name: 'Ivanickiy',
-          role: 'admin',
-          isWebAdmin: true
-        };
+      const response = await fetch('https://functions.poehali.dev/e120dd9f-d7a2-44c9-8bc8-bb0a1aabbcf2', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-        localStorage.setItem('telegram_user', JSON.stringify(adminUser));
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem('telegram_user', JSON.stringify(data.user));
         
         toast({
           title: 'Вход выполнен',
@@ -41,9 +42,10 @@ const AdminLogin = () => {
 
         navigate('/');
       } else {
-        setError('Неверный логин или пароль');
+        setError(data.error || 'Неверный логин или пароль');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('Ошибка входа. Попробуйте позже.');
     } finally {
       setIsLoading(false);
