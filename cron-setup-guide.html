@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пошаговая настройка автоматической ротации</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .header h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+        .step {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .step-number {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .step h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        .step p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .copy-box {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .copy-box input {
+            flex: 1;
+            border: none;
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .copy-box button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .copy-box button:hover {
+            background: #5568d3;
+        }
+        .screenshot {
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            margin: 20px 0;
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+        }
+        .screenshot img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .screenshot-placeholder {
+            background: white;
+            padding: 60px 20px;
+            border-radius: 8px;
+            color: #999;
+            font-size: 14px;
+        }
+        .action-button {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+        .action-button:hover {
+            transform: translateY(-2px);
+        }
+        .info-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .info-box strong {
+            color: #856404;
+        }
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .success-box h3 {
+            color: #155724;
+            margin-bottom: 10px;
+        }
+        .test-section {
+            background: #e7f3ff;
+            border: 2px solid #2196F3;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .test-section h3 {
+            color: #1976D2;
+            margin-bottom: 15px;
+        }
+        .test-button {
+            width: 100%;
+            padding: 15px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .test-button:hover {
+            background: #1976D2;
+        }
+        .test-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        .status.show {
+            display: block;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        .result-details {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 10px 15px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+        .checklist li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Настройка автоматической ротации QR-кодов</h1>
+            <p>Следуйте этой инструкции шаг за шагом</p>
+        </div>
+
+        <!-- ШАГ 1 -->
+        <div class="step">
+            <span class="step-number">1</span>
+            <h2>Откройте cron-job.org</h2>
+            <p>Перейдите на сайт и создайте бесплатный аккаунт</p>
+            <a href="https://cron-job.org" target="_blank" class="action-button">
+                🌐 Открыть cron-job.org
+            </a>
+            <div class="info-box">
+                <strong>💡 Подсказка:</strong> Вы можете войти через Google, GitHub или создать аккаунт по email
+            </div>
+        </div>
+
+        <!-- ШАГ 2 -->
+        <div class="step">
+            <span class="step-number">2</span>
+            <h2>Создайте новую задачу</h2>
+            <p>После входа нажмите кнопку <strong>"Create cronjob"</strong> или <strong>"+ New Cronjob"</strong></p>
+            <div class="screenshot">
+                <div class="screenshot-placeholder">
+                    После нажатия кнопки откроется форма создания новой задачи
+                </div>
+            </div>
+        </div>
+
+        <!-- ШАГ 3 -->
+        <div class="step">
+            <span class="step-number">3</span>
+            <h2>Заполните форму задачи</h2>
+            
+            <p><strong>Title (Название):</strong></p>
+            <div class="copy-box">
+                <input type="text" id="title" value="Telegram Bot QR Rotation" readonly>
+                <button onclick="copyField('title')">📋 Копировать</button>
+            </div>
+
+            <p><strong>URL:</strong></p>
+            <div class="copy-box">
+                <input type="text" id="url" value="https://functions.poehali.dev/ebf114aa-c461-46e1-b455-d28991013d12" readonly>
+                <button onclick="copyField('url')">📋 Копировать</button>
+            </div>
+
+            <div class="info-box">
+                <strong>⚠️ Важно:</strong> Убедитесь, что выбран метод <strong>POST</strong> (не GET)
+            </div>
+        </div>
+
+        <!-- ШАГ 4 -->
+        <div class="step">
+            <span class="step-number">4</span>
+            <h2>Настройте расписание</h2>
+            <p>Выберите один из вариантов:</p>
+            
+            <p><strong>Вариант 1: Каждые 6 часов (рекомендуется)</strong></p>
+            <div class="copy-box">
+                <input type="text" id="schedule1" value="0 */6 * * *" readonly>
+                <button onclick="copyField('schedule1')">📋 Копировать</button>
+            </div>
+
+            <p><strong>Вариант 2: Каждый день в 00:00</strong></p>
+            <div class="copy-box">
+                <input type="text" id="schedule2" value="0 0 * * *" readonly>
+                <button onclick="copyField('schedule2')">📋 Копировать</button>
+            </div>
+
+            <p><strong>Вариант 3: Каждый час</strong></p>
+            <div class="copy-box">
+                <input type="text" id="schedule3" value="0 * * * *" readonly>
+                <button onclick="copyField('schedule3')">📋 Копировать</button>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 Рекомендация:</strong> Каждые 6 часов — оптимальный вариант. Функция сама проверит, каким ботам нужна ротация.
+            </div>
+        </div>
+
+        <!-- ШАГ 5 -->
+        <div class="step">
+            <span class="step-number">5</span>
+            <h2>Сохраните задачу</h2>
+            <p>Нажмите кнопку <strong>"Create"</strong> или <strong>"Save"</strong></p>
+            <div class="success-box">
+                <h3>✅ Готово!</h3>
+                <p>Задача создана и будет выполняться автоматически по расписанию</p>
+            </div>
+        </div>
+
+        <!-- ТЕСТИРОВАНИЕ -->
+        <div class="step">
+            <div class="test-section">
+                <h3>🧪 Протестируйте ротацию прямо сейчас</h3>
+                <p>Нажмите кнопку ниже, чтобы проверить, что всё работает правильно</p>
+                <button class="test-button" onclick="testRotation()" id="testBtn">
+                    🚀 Запустить тестовую ротацию
+                </button>
+                <div id="status" class="status"></div>
+            </div>
+        </div>
+
+        <!-- ФИНАЛЬНЫЙ ЧЕК-ЛИСТ -->
+        <div class="step">
+            <span class="step-number">✓</span>
+            <h2>Чек-лист готовности</h2>
+            <ul class="checklist">
+                <li>Аккаунт на cron-job.org создан</li>
+                <li>Задача создана с правильным URL</li>
+                <li>Метод POST выбран</li>
+                <li>Расписание настроено (каждые 6 часов)</li>
+                <li>Задача активна и запущена</li>
+                <li>Тестовая ротация выполнена успешно</li>
+            </ul>
+
+            <div class="success-box" style="margin-top: 30px;">
+                <h3>🎉 Поздравляем!</h3>
+                <p>Автоматическая ротация QR-кодов настроена и работает</p>
+                <p style="margin-top: 10px; font-size: 14px; color: #666;">
+                    Вы можете проверить статус в админ-панели → вкладка "Ротация"
+                </p>
+            </div>
+        </div>
+
+        <!-- ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ -->
+        <div class="step">
+            <h2>📚 Дополнительная информация</h2>
+            
+            <h3 style="margin-top: 20px; color: #667eea;">Как работает ротация?</h3>
+            <p>1. Cron-сервис вызывает функцию по расписанию</p>
+            <p>2. Функция проверяет все активные боты</p>
+            <p>3. Для каждого бота проверяется интервал ротации</p>
+            <p>4. Если время пришло — бесплатные QR-коды сбрасываются</p>
+            <p>5. VIP-коды остаются активными всегда</p>
+
+            <h3 style="margin-top: 20px; color: #667eea;">Текущие настройки бота "Генератор QR + Vip"</h3>
+            <ul class="checklist">
+                <li>Интервал ротации: 1 день (24 часа)</li>
+                <li>Бесплатных QR-кодов: 500</li>
+                <li>VIP QR-кодов: 500</li>
+                <li>Статус: Активен и одобрен</li>
+            </ul>
+
+            <h3 style="margin-top: 20px; color: #667eea;">Полезные ссылки</h3>
+            <div style="margin-top: 10px;">
+                <a href="https://cron-job.org" target="_blank" class="action-button">cron-job.org</a>
+                <a href="https://www.easycron.com" target="_blank" class="action-button">EasyCron (альтернатива)</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyField(fieldId) {
+            const input = document.getElementById(fieldId);
+            input.select();
+            document.execCommand('copy');
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✅ Скопировано!';
+            btn.style.background = '#28a745';
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '#667eea';
+            }, 2000);
+        }
+
+        async function testRotation() {
+            const statusDiv = document.getElementById('status');
+            const testBtn = document.getElementById('testBtn');
+            
+            testBtn.disabled = true;
+            testBtn.textContent = '⏳ Выполняется тестирование...';
+            
+            statusDiv.className = 'status show';
+            statusDiv.innerHTML = '🔄 Запуск функции ротации...';
+            
+            try {
+                const response = await fetch('https://functions.poehali.dev/ebf114aa-c461-46e1-b455-d28991013d12', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const result = data.rotation_result;
+                    const rotated = result.rotated || 0;
+                    const skipped = result.skipped || 0;
+                    const total = result.total_processed || 0;
+                    
+                    statusDiv.className = 'status show success';
+                    statusDiv.innerHTML = `
+                        <strong>✅ Тестирование успешно завершено!</strong>
+                        <div class="result-details">
+                            <strong>Результаты:</strong><br>
+                            📊 Проверено ботов: ${total}<br>
+                            🔄 Обновлено: ${rotated}<br>
+                            ⏭️ Пропущено: ${skipped}<br>
+                            <br>
+                            ${result.details && result.details.length > 0 ? 
+                                '<strong>Детали:</strong><br>' + result.details.map(d => 
+                                    `• <strong>${d.bot_name}</strong>: ${d.action === 'rotated' ? 
+                                        `✅ обновлено ${d.free_qr_reset} QR-кодов` : 
+                                        `⏭️ ${d.reason}`}`
+                                ).join('<br>') 
+                                : ''
+                            }
+                        </div>
+                        <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1);">
+                            <strong>Вывод:</strong> Функция работает корректно! ${rotated > 0 ? 'QR-коды обновлены.' : 'Ротация пока не требуется по расписанию.'}
+                        </p>
+                    `;
+                } else {
+                    throw new Error(data.error || 'Неизвестная ошибка');
+                }
+            } catch (error) {
+                statusDiv.className = 'status show error';
+                statusDiv.innerHTML = `
+                    <strong>❌ Ошибка при тестировании</strong><br>
+                    ${error.message}<br>
+                    <br>
+                    <em>Проверьте подключение к интернету и повторите попытку</em>
+                `;
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = '🚀 Запустить тестовую ротацию';
+            }
+        }
+    </script>
+</body>
+</html>
