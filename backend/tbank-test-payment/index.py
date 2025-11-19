@@ -68,10 +68,26 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         'TerminalKey': terminal_key,
         'Amount': amount,
         'OrderId': f'test_{context.request_id}',
-        'Description': 'Тестовый платеж T-Bank СБП',
+        'Description': 'Тестовый платеж T-Bank',
         'DATA': {
             'Phone': '+71234567890',
             'Email': 'test@example.com'
+        },
+        'Receipt': {
+            'Email': 'test@example.com',
+            'Phone': '+71234567890',
+            'Taxation': 'usn_income',
+            'Items': [
+                {
+                    'Name': 'Тестовый товар',
+                    'Price': amount,
+                    'Quantity': 1,
+                    'Amount': amount,
+                    'Tax': 'none',
+                    'PaymentMethod': 'full_payment',
+                    'PaymentObject': 'service'
+                }
+            ]
         }
     }
     
@@ -79,7 +95,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         'TerminalKey': init_params['TerminalKey'],
         'Amount': init_params['Amount'],
         'OrderId': init_params['OrderId'],
-        'Description': init_params['Description']
+        'Description': init_params['Description'],
+        'Receipt': init_params['Receipt']
     }, password)
     
     init_params['Token'] = token

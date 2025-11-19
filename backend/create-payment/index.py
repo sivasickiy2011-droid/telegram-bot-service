@@ -191,7 +191,23 @@ def create_card_payment(terminal_key: str, password: str, amount: int, order_id:
         'OrderId': order_id,
         'Description': description,
         'SuccessURL': success_url or 'https://t.me',
-        'FailURL': fail_url or 'https://t.me'
+        'FailURL': fail_url or 'https://t.me',
+        'Receipt': {
+            'Email': 'customer@example.com',
+            'Phone': '+71234567890',
+            'Taxation': 'usn_income',
+            'Items': [
+                {
+                    'Name': description or f'Оплата заказа {order_id}',
+                    'Price': amount,
+                    'Quantity': 1,
+                    'Amount': amount,
+                    'Tax': 'none',
+                    'PaymentMethod': 'full_payment',
+                    'PaymentObject': 'service'
+                }
+            ]
+        }
     }
     
     token = generate_token(payload, password)
