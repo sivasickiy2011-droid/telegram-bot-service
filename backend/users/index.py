@@ -67,7 +67,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         photo_url_escaped = photo_url.replace("'", "''")
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        query = f'''INSERT INTO users (telegram_id, username, first_name, last_name, photo_url)
+        query = f'''INSERT INTO t_p5255237_telegram_bot_service.users (telegram_id, username, first_name, last_name, photo_url)
                VALUES ({telegram_id}, '{username_escaped}', '{first_name_escaped}', '{last_name_escaped}', '{photo_url_escaped}')
                ON CONFLICT (telegram_id) DO UPDATE
                SET username = EXCLUDED.username,
@@ -101,8 +101,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             query = '''SELECT u.id, u.telegram_id, u.username, u.first_name, u.last_name, 
                        u.role, u.created_at, COUNT(b.id) as bots_count 
-                       FROM users u 
-                       LEFT JOIN bots b ON u.id = b.user_id 
+                       FROM t_p5255237_telegram_bot_service.users u 
+                       LEFT JOIN t_p5255237_telegram_bot_service.bots b ON u.id = b.user_id 
                        GROUP BY u.id 
                        ORDER BY u.created_at DESC'''
             cursor.execute(query)
@@ -133,7 +133,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        query = f'SELECT * FROM users WHERE telegram_id = {telegram_id}'
+        query = f'SELECT * FROM t_p5255237_telegram_bot_service.users WHERE telegram_id = {telegram_id}'
         cursor.execute(query)
         user = cursor.fetchone()
         cursor.close()
