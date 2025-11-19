@@ -95,11 +95,16 @@
         <h1>🧪 Тест платежа T-Bank</h1>
         
         <div class="info">
-            <strong>Тестовые данные:</strong><br>
+            <strong>Тестовые данные T-Bank:</strong><br>
             Terminal_id: 1763535470794DEMO<br>
             Password: CZq2*qpknmH5efA*<br>
             <br>
-            Эти данные уже заполнены ниже. Нажмите "Создать тестовый платёж".
+            <strong>Тестовая карта для оплаты:</strong><br>
+            💳 Номер: <code>4000 0000 0000 0119</code><br>
+            📅 Срок: <code>12/30</code><br>
+            🔒 CVV: <code>111</code><br>
+            <br>
+            <small>После создания платежа откроется страница T-Bank, где нужно ввести данные тестовой карты.</small>
         </div>
 
         <div class="input-group">
@@ -173,8 +178,15 @@
                     let message = '<strong>✅ Платёж успешно создан!</strong><br><br>';
                     
                     if (payment_method === 'card' && data.payment_url) {
+                        message += '<div style="background: #fef3c7; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #fbbf24;">';
+                        message += '<strong>💳 Используйте тестовую карту:</strong><br>';
+                        message += 'Номер: <code>4000 0000 0000 0119</code><br>';
+                        message += 'Срок: <code>12/30</code><br>';
+                        message += 'CVV: <code>111</code>';
+                        message += '</div>';
                         message += 'URL для оплаты:<br>';
-                        message += `<a href="${data.payment_url}" target="_blank" style="color: #6366f1;">${data.payment_url}</a><br><br>`;
+                        message += `<a href="${data.payment_url}" target="_blank" style="color: #6366f1; font-weight: bold; font-size: 16px;">${data.payment_url}</a><br><br>`;
+                        message += '<button onclick="window.open(\'${data.payment_url}\', \'_blank\')" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 15px;">Открыть страницу оплаты</button><br>';
                         message += '<strong>Результат:</strong>';
                     } else if (payment_method === 'sbp' && data.qr_code) {
                         message += 'QR-код для СБП:<br>';
