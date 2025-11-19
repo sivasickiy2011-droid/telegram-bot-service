@@ -88,10 +88,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         qr_stats_query = f'''SELECT 
                                COUNT(*) as total_qr_codes,
-                               COUNT(CASE WHEN user_id IS NOT NULL THEN 1 END) as used_qr_codes,
-                               COUNT(CASE WHEN user_id IS NULL THEN 1 END) as available_qr_codes,
-                               COUNT(CASE WHEN is_vip = true THEN 1 END) as vip_codes,
-                               COUNT(CASE WHEN is_vip = false THEN 1 END) as free_codes
+                               COUNT(CASE WHEN is_used = true THEN 1 END) as used_qr_codes,
+                               COUNT(CASE WHEN is_used = false THEN 1 END) as available_qr_codes,
+                               COUNT(CASE WHEN code_type = 'vip' THEN 1 END) as vip_codes,
+                               COUNT(CASE WHEN code_type = 'free' THEN 1 END) as free_codes
                             FROM t_p5255237_telegram_bot_service.qr_codes 
                             WHERE bot_id = {bot_id}'''
         cursor.execute(qr_stats_query)
