@@ -102,6 +102,12 @@ const Index = () => {
         template: bot.template,
         moderationStatus: bot.moderation_status,
         moderationReason: bot.moderation_reason,
+        payment_url: bot.payment_url,
+        payment_enabled: bot.payment_enabled,
+        qr_free_count: bot.qr_free_count,
+        qr_paid_count: bot.qr_paid_count,
+        qr_rotation_value: bot.qr_rotation_value,
+        qr_rotation_unit: bot.qr_rotation_unit,
       })));
     } catch (error) {
       console.error('Failed to load bots:', error);

@@ -160,6 +160,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         body_data = json.loads(event.get('body', '{}'))
         bot_id = body_data.get('bot_id')
         status = body_data.get('status')
+        payment_url = body_data.get('payment_url')
+        payment_enabled = body_data.get('payment_enabled')
         
         if not bot_id:
             conn.close()
@@ -175,7 +177,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        if not status:
+        update_parts = []
+        if status is not None:
+            status_escaped = status.replace("'", "''")
+            update_parts.append(f"status = '{status_escaped}'")
+        
+        if payment_url is not None:
+            payment_url_escaped = payment_url.replace("'", "''")
+            update_parts.append(f"payment_url = '{payment_url_escaped}'")
+        
+        if payment_enabled is not None:
+            update_parts.append(f"payment_enabled = {payment_enabled}")
+        
+        if not update_parts:
             conn.close()
             return {
                 'statusCode': 400,
@@ -187,8 +201,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False
             }
         
-        status_escaped = status.replace("'", "''")
-        query = f"UPDATE t_p5255237_telegram_bot_service.bots SET status = '{status_escaped}', updated_at = CURRENT_TIMESTAMP WHERE id = {bot_id} RETURNING *"
+        update_parts.append("updated_at = CURRENT_TIMESTAMP")
+        update_clause = ", ".join(update_parts)
+        
+        query = f"UPDATE t_p5255237_telegram_bot_service.bots SET {update_clause} WHERE id = {bot_id} RETURNING *"
         cursor.execute(query)
         bot = cursor.fetchone()
         conn.commit()

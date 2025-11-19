@@ -1,0 +1,21 @@
+{
+  "tests": [
+    {
+      "name": "Bot not found",
+      "method": "GET",
+      "path": "/?bot_id=99999",
+      "expectedStatus": 404,
+      "expectedBody": {
+        "error": "Bot not found"
+      }
+    },
+    {
+      "name": "Missing bot_id parameter",
+      "method": "GET",
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "bot_id parameter is required"
+      }
+    }
+  ]
+}

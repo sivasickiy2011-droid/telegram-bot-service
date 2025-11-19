@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
@@ -14,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
 
 interface Bot {
   id: string;
@@ -22,6 +24,12 @@ interface Bot {
   users: number;
   messages: number;
   template: string;
+  payment_url?: string;
+  payment_enabled?: boolean;
+  qr_free_count?: number;
+  qr_paid_count?: number;
+  qr_rotation_value?: number;
+  qr_rotation_unit?: string;
 }
 
 interface BotsTabProps {
@@ -87,6 +95,97 @@ const BotsTab = ({
 }: BotsTabProps) => {
   const isAdmin = currentUser?.role === 'admin';
   const canCreateBot = isAdmin || bots.length < 1;
+  const { toast } = useToast();
+  
+  const [selectedBot, setSelectedBot] = useState<Bot | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [botStats, setBotStats] = useState<any>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
+  
+  const [editPaymentUrl, setEditPaymentUrl] = useState('');
+  const [editPaymentEnabled, setEditPaymentEnabled] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  
+  const openSettings = (bot: Bot) => {
+    setSelectedBot(bot);
+    setEditPaymentUrl(bot.payment_url || '');
+    setEditPaymentEnabled(bot.payment_enabled || false);
+    setSettingsOpen(true);
+  };
+  
+  const openStats = async (bot: Bot) => {
+    setSelectedBot(bot);
+    setStatsOpen(true);
+    setLoadingStats(true);
+    setBotStats(null);
+    
+    try {
+      const response = await fetch(`https://functions.poehali.dev/5c1d4d82-b836-4d64-b74e-c317fde888e9?bot_id=${bot.id}`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setBotStats(data.stats);
+      } else {
+        toast({
+          title: 'Ошибка',
+          description: data.error || 'Не удалось загрузить статистику',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось загрузить статистику',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+  
+  const saveSettings = async () => {
+    if (!selectedBot) return;
+    
+    setSavingSettings(true);
+    try {
+      const response = await fetch('https://functions.poehali.dev/fee936e7-7794-4f0a-b8f3-73e64570ada5', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          bot_id: selectedBot.id,
+          payment_url: editPaymentUrl,
+          payment_enabled: editPaymentEnabled
+        })
+      });
+      
+      if (response.ok) {
+        toast({
+          title: 'Настройки сохранены',
+          description: 'Платежная ссылка обновлена'
+        });
+        setSettingsOpen(false);
+        window.location.reload();
+      } else {
+        const data = await response.json();
+        toast({
+          title: 'Ошибка',
+          description: data.error || 'Не удалось сохранить настройки',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось сохранить настройки',
+        variant: 'destructive'
+      });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const getBotTypeLabel = (type: string) => {
     const types: Record<string, string> = {
@@ -442,7 +541,7 @@ const BotsTab = ({
                   size="sm" 
                   className="flex-1"
                   disabled={bot.moderationStatus === 'pending' || bot.moderationStatus === 'rejected'}
-                  onClick={() => alert('Настройки бота будут доступны в следующей версии')}
+                  onClick={() => openSettings(bot)}
                 >
                   <Icon name="Settings" size={14} className="mr-1" />
                   Настройки
@@ -452,7 +551,7 @@ const BotsTab = ({
                   size="sm" 
                   className="flex-1"
                   disabled={bot.moderationStatus === 'pending' || bot.moderationStatus === 'rejected'}
-                  onClick={() => alert('Статистика бота будет доступна в следующей версии')}
+                  onClick={() => openStats(bot)}
                 >
                   <Icon name="BarChart3" size={14} className="mr-1" />
                   Статистика
@@ -476,6 +575,162 @@ const BotsTab = ({
           </Card>
         ))}
       </div>
+      
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Настройки бота: {selectedBot?.name}</DialogTitle>
+            <DialogDescription>
+              Настройте платежную ссылку для VIP-ключей
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="edit-payment-enabled"
+                  checked={editPaymentEnabled}
+                  onCheckedChange={(checked) => setEditPaymentEnabled(checked as boolean)}
+                />
+                <Label htmlFor="edit-payment-enabled" className="cursor-pointer">
+                  Включить платные QR-коды
+                </Label>
+              </div>
+              
+              {editPaymentEnabled && (
+                <div className="space-y-2 pl-6">
+                  <Label htmlFor="edit-payment-url">
+                    Платежная ссылка Т-банк
+                  </Label>
+                  <Input
+                    id="edit-payment-url"
+                    type="url"
+                    placeholder="https://www.tbank.ru/rm/..."
+                    value={editPaymentUrl}
+                    onChange={(e) => setEditPaymentUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Эта ссылка откроется при нажатии кнопки "Купить VIP-ключ"
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setSettingsOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={saveSettings} disabled={savingSettings}>
+              {savingSettings ? 'Сохранение...' : 'Сохранить'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={statsOpen} onOpenChange={setStatsOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Статистика бота: {selectedBot?.name}</DialogTitle>
+            <DialogDescription>
+              Детальная информация о работе бота
+            </DialogDescription>
+          </DialogHeader>
+          
+          {loadingStats ? (
+            <div className="py-12 text-center">
+              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Загрузка статистики...</p>
+            </div>
+          ) : botStats ? (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                      <Icon name="Users" size={20} className="text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{botStats.total_users}</p>
+                      <p className="text-xs text-muted-foreground">Пользователей</p>
+                    </div>
+                  </div>
+                </Card>
+                
+                <Card className="p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                      <Icon name="MessageSquare" size={20} className="text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{botStats.total_messages}</p>
+                      <p className="text-xs text-muted-foreground">Сообщений</p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+              
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Icon name="QrCode" size={16} />
+                  QR-коды
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Всего создано:</span>
+                    <span className="font-medium">{botStats.qr_codes.total}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Использовано:</span>
+                    <span className="font-medium text-green-600">{botStats.qr_codes.used}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Доступно:</span>
+                    <span className="font-medium text-blue-600">{botStats.qr_codes.available}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">VIP кодов:</span>
+                    <span className="font-medium text-purple-600">{botStats.qr_codes.vip_total}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Бесплатных:</span>
+                    <span className="font-medium">{botStats.qr_codes.free_total}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {botStats.payment_enabled && (
+                <div className="border rounded-lg p-4 bg-green-500/5">
+                  <h3 className="font-semibold flex items-center gap-2 mb-2">
+                    <Icon name="CreditCard" size={16} />
+                    Платежи
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-2">Платежная ссылка:</p>
+                  <a 
+                    href={botStats.payment_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:underline break-all"
+                  >
+                    {botStats.payment_url}
+                  </a>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground">
+              <Icon name="AlertCircle" size={48} className="mx-auto mb-4 opacity-50" />
+              <p>Не удалось загрузить статистику</p>
+            </div>
+          )}
+          
+          <div className="flex justify-end">
+            <Button onClick={() => setStatsOpen(false)}>Закрыть</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
