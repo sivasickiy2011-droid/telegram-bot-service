@@ -5,6 +5,7 @@ import LoginPage from '@/components/LoginPage';
 import RegistrationForm from '@/components/RegistrationForm';
 import DashboardTab from '@/components/DashboardTab';
 import BotsTab from '@/components/BotsTab';
+import TemplatesTab from '@/components/TemplatesTab';
 import AdminTab from '@/components/AdminTab';
 import ModerationTab from '@/components/ModerationTab';
 import BotActivationTab from '@/components/BotActivationTab';
@@ -75,7 +76,7 @@ const Index = () => {
       <div className="pt-24 pb-12">
         <div className="container mx-auto px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-            <TabsList className={`grid w-full max-w-5xl mx-auto h-12 ${currentUser?.role === 'admin' ? 'grid-cols-6' : 'grid-cols-2'}`}>
+            <TabsList className={`grid w-full max-w-5xl mx-auto h-12 ${currentUser?.role === 'admin' ? 'grid-cols-7' : 'grid-cols-3'}`}>
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <Icon name="LayoutDashboard" size={16} />
                 Дашборд
@@ -83,6 +84,10 @@ const Index = () => {
               <TabsTrigger value="bots" className="flex items-center gap-2">
                 <Icon name="Bot" size={16} />
                 Мои боты
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="flex items-center gap-2">
+                <Icon name="LayoutTemplate" size={16} />
+                Шаблоны
               </TabsTrigger>
               {currentUser?.role === 'admin' && (
                 <>
@@ -111,6 +116,10 @@ const Index = () => {
                 bots={botManagement.bots} 
                 getStatusColor={getStatusColor} 
               />
+            </TabsContent>
+
+            <TabsContent value="templates">
+              <TemplatesTab />
             </TabsContent>
 
             <TabsContent value="bots">
