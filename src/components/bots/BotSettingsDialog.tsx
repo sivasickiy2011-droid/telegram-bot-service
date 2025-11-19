@@ -39,6 +39,16 @@ interface BotSettingsDialogProps {
   savingSettings: boolean;
   setEditPaymentUrl: (value: string) => void;
   setEditPaymentEnabled: (value: boolean) => void;
+  editButtonTexts: any;
+  setEditButtonTexts: (value: any) => void;
+  editMessageTexts: any;
+  setEditMessageTexts: (value: any) => void;
+  editTbankTerminalKey: string;
+  setEditTbankTerminalKey: (value: string) => void;
+  editTbankPassword: string;
+  setEditTbankPassword: (value: string) => void;
+  editVipPrice: number;
+  setEditVipPrice: (value: number) => void;
   onSave: () => void;
 }
 
@@ -51,34 +61,24 @@ const BotSettingsDialog = ({
   savingSettings,
   setEditPaymentUrl,
   setEditPaymentEnabled,
+  editButtonTexts,
+  setEditButtonTexts,
+  editMessageTexts,
+  setEditMessageTexts,
+  editTbankTerminalKey,
+  setEditTbankTerminalKey,
+  editTbankPassword,
+  setEditTbankPassword,
+  editVipPrice,
+  setEditVipPrice,
   onSave,
 }: BotSettingsDialogProps) => {
   const [activeTab, setActiveTab] = useState('payment');
-  
-  const [buttonTexts, setButtonTexts] = useState({
-    free_key: '🎁 Получить бесплатный ключ',
-    secret_shop: '🔐 Узнать про Тайную витрину',
-    buy_vip: '💎 Купить VIP-ключ',
-    help: '❓ Помощь'
-  });
-  
-  const [messageTexts, setMessageTexts] = useState({
-    welcome: '🚀 Привет! Я бот POLYTOPE.\n\nЗдесь вы можете получить бесплатный ключ и VIP-ключ для доступа к Тайной витрине на нашей закрытой распродаже с 21 по 23 ноября.\n\nВыберите действие:',
-    free_key_success: '✅ Ваш бесплатный ключ №{code_number}\n\nПокажите этот QR-код на кассе:\n• Участвуете в розыгрыше подарка\n• Получаете право на участие в Чёрной пятнице',
-    free_key_empty: '😔 Бесплатные ключи на сегодня закончились.\n\nНо вы всё ещё можете получить VIP-ключ и попасть в Тайную витрину!',
-    secret_shop_info: '🔐 Тайная витрина — это эксклюзивная закрытая распродажа!\n\n📅 Даты: 21-23 ноября\n💎 Доступ: Только с VIP-ключом\n🎁 Специальные предложения и скидки до 70%\n\nVIP-ключ открывает доступ к товарам, которых нет в обычном магазине.',
-    buy_vip_info: '💎 VIP-ключ дает доступ к Тайной витрине!\n\nСтоимость: 500 ₽\n\nПосле оплаты вы получите VIP QR-код с номером от 501 до 1000.',
-    help: '❓ Как пользоваться ботом:\n\n🎁 Получить бесплатный ключ - выдает QR-код (номера 1-500)\n🔐 Узнать про Тайную витрину - информация о закрытой распродаже\n💎 Купить VIP-ключ - получить доступ к эксклюзивным товарам\n\nПо всем вопросам пишите в поддержку.'
-  });
-  
-  const [tbankTerminalKey, setTbankTerminalKey] = useState('');
-  const [tbankPassword, setTbankPassword] = useState('');
-  const [vipPrice, setVipPrice] = useState(500);
   const [testingPayment, setTestingPayment] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean; message: string; details?: any} | null>(null);
   
   const handleTestPayment = async () => {
-    if (!tbankTerminalKey || !tbankPassword) {
+    if (!editTbankTerminalKey || !editTbankPassword) {
       setTestResult({
         success: false,
         message: 'Заполните Terminal Key и Password для тестирования'
@@ -96,9 +96,9 @@ const BotSettingsDialog = ({
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          terminal_key: tbankTerminalKey,
-          password: tbankPassword,
-          amount: vipPrice * 100
+          terminal_key: editTbankTerminalKey,
+          password: editTbankPassword,
+          amount: editVipPrice * 100
         })
       });
       
@@ -174,8 +174,8 @@ const BotSettingsDialog = ({
                       id="vip-price"
                       type="number"
                       min="0"
-                      value={vipPrice}
-                      onChange={(e) => setVipPrice(parseInt(e.target.value) || 0)}
+                      value={editVipPrice}
+                      onChange={(e) => setEditVipPrice(parseInt(e.target.value) || 0))
                     />
                   </div>
                   
@@ -187,8 +187,8 @@ const BotSettingsDialog = ({
                       id="tbank-terminal-key"
                       type="text"
                       placeholder="ваш_terminal_key"
-                      value={tbankTerminalKey}
-                      onChange={(e) => setTbankTerminalKey(e.target.value)}
+                      value={editTbankTerminalKey}
+                      onChange={(e) => setEditTbankTerminalKey(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
                       Получите в личном кабинете T-Bank
@@ -203,8 +203,8 @@ const BotSettingsDialog = ({
                       id="tbank-password"
                       type="password"
                       placeholder="ваш_пароль"
-                      value={tbankPassword}
-                      onChange={(e) => setTbankPassword(e.target.value)}
+                      value={editTbankPassword}
+                      onChange={(e) => setEditTbankPassword(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
                       Секретный пароль из личного кабинета T-Bank
@@ -216,7 +216,7 @@ const BotSettingsDialog = ({
                       type="button"
                       variant="outline" 
                       onClick={handleTestPayment}
-                      disabled={testingPayment || !tbankTerminalKey || !tbankPassword}
+                      disabled={testingPayment || !editTbankTerminalKey || !editTbankPassword}
                       className="w-full"
                     >
                       <Icon name={testingPayment ? "Loader2" : "TestTube2"} size={14} className={`mr-2 ${testingPayment ? 'animate-spin' : ''}`} />
@@ -261,8 +261,8 @@ const BotSettingsDialog = ({
                     <Label htmlFor="btn-free-key" className="text-xs">Кнопка "Получить бесплатный ключ"</Label>
                     <Input
                       id="btn-free-key"
-                      value={buttonTexts.free_key}
-                      onChange={(e) => setButtonTexts({...buttonTexts, free_key: e.target.value})}
+                      value={editButtonTexts?.free_key || '🎁 Получить бесплатный ключ'}
+                      onChange={(e) => setEditButtonTexts({...(editButtonTexts || {}), free_key: e.target.value})}
                       className="mt-1"
                     />
                   </div>
@@ -270,8 +270,8 @@ const BotSettingsDialog = ({
                     <Label htmlFor="btn-secret-shop" className="text-xs">Кнопка "Узнать про Тайную витрину"</Label>
                     <Input
                       id="btn-secret-shop"
-                      value={buttonTexts.secret_shop}
-                      onChange={(e) => setButtonTexts({...buttonTexts, secret_shop: e.target.value})}
+                      value={editButtonTexts?.secret_shop || '🔐 Узнать про Тайную витрину'}
+                      onChange={(e) => setEditButtonTexts({...(editButtonTexts || {}), secret_shop: e.target.value})}
                       className="mt-1"
                     />
                   </div>
@@ -279,8 +279,8 @@ const BotSettingsDialog = ({
                     <Label htmlFor="btn-buy-vip" className="text-xs">Кнопка "Купить VIP-ключ"</Label>
                     <Input
                       id="btn-buy-vip"
-                      value={buttonTexts.buy_vip}
-                      onChange={(e) => setButtonTexts({...buttonTexts, buy_vip: e.target.value})}
+                      value={editButtonTexts?.buy_vip || '💎 Купить VIP-ключ'}
+                      onChange={(e) => setEditButtonTexts({...(editButtonTexts || {}), buy_vip: e.target.value})}
                       className="mt-1"
                     />
                   </div>
@@ -288,8 +288,8 @@ const BotSettingsDialog = ({
                     <Label htmlFor="btn-help" className="text-xs">Кнопка "Помощь"</Label>
                     <Input
                       id="btn-help"
-                      value={buttonTexts.help}
-                      onChange={(e) => setButtonTexts({...buttonTexts, help: e.target.value})}
+                      value={editButtonTexts?.help || '❓ Помощь'}
+                      onChange={(e) => setEditButtonTexts({...(editButtonTexts || {}), help: e.target.value})}
                       className="mt-1"
                     />
                   </div>
@@ -303,8 +303,8 @@ const BotSettingsDialog = ({
                     <Label htmlFor="msg-welcome" className="text-xs">Приветственное сообщение</Label>
                     <Textarea
                       id="msg-welcome"
-                      value={messageTexts.welcome}
-                      onChange={(e) => setMessageTexts({...messageTexts, welcome: e.target.value})}
+                      value={editMessageTexts?.welcome || '🚀 Привет! Я бот POLYTOPE.\n\nЗдесь вы можете получить бесплатный ключ и VIP-ключ для доступа к Тайной витрине на нашей закрытой распродаже с 21 по 23 ноября.\n\nВыберите действие:'}
+                      onChange={(e) => setEditMessageTexts({...(editMessageTexts || {}), welcome: e.target.value})}
                       rows={3}
                       className="mt-1"
                     />
@@ -313,8 +313,8 @@ const BotSettingsDialog = ({
                     <Label htmlFor="msg-free-success" className="text-xs">Сообщение при выдаче бесплатного ключа</Label>
                     <Textarea
                       id="msg-free-success"
-                      value={messageTexts.free_key_success}
-                      onChange={(e) => setMessageTexts({...messageTexts, free_key_success: e.target.value})}
+                      value={editMessageTexts?.free_key_success || '✅ Ваш бесплатный ключ №{code_number}\n\nПокажите этот QR-код на кассе:\n• Участвуете в розыгрыше подарка\n• Получаете право на участие в Чёрной пятнице'}
+                      onChange={(e) => setEditMessageTexts({...(editMessageTexts || {}), free_key_success: e.target.value})}
                       rows={3}
                       className="mt-1"
                     />
@@ -326,8 +326,8 @@ const BotSettingsDialog = ({
                     <Label htmlFor="msg-vip-info" className="text-xs">Сообщение при покупке VIP-ключа</Label>
                     <Textarea
                       id="msg-vip-info"
-                      value={messageTexts.buy_vip_info}
-                      onChange={(e) => setMessageTexts({...messageTexts, buy_vip_info: e.target.value})}
+                      value={editMessageTexts?.buy_vip_info || '💎 VIP-ключ дает доступ к Тайной витрине!\n\nСтоимость: 500 ₽\n\nПосле оплаты вы получите VIP QR-код с номером от 501 до 1000.'}
+                      onChange={(e) => setEditMessageTexts({...(editMessageTexts || {}), buy_vip_info: e.target.value})}
                       rows={3}
                       className="mt-1"
                     />

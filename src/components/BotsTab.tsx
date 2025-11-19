@@ -102,6 +102,11 @@ const BotsTab = ({
   const [editPaymentUrl, setEditPaymentUrl] = useState('');
   const [editPaymentEnabled, setEditPaymentEnabled] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [editButtonTexts, setEditButtonTexts] = useState<any>(null);
+  const [editMessageTexts, setEditMessageTexts] = useState<any>(null);
+  const [editTbankTerminalKey, setEditTbankTerminalKey] = useState('');
+  const [editTbankPassword, setEditTbankPassword] = useState('');
+  const [editVipPrice, setEditVipPrice] = useState(500);
   
   const openSettings = (bot: Bot) => {
     setSelectedBot(bot);
@@ -154,16 +159,24 @@ const BotsTab = ({
     
     setSavingSettings(true);
     try {
+      const bodyData: any = {
+        bot_id: selectedBot.id,
+        payment_url: editPaymentUrl,
+        payment_enabled: editPaymentEnabled
+      };
+      
+      if (editButtonTexts) bodyData.button_texts = editButtonTexts;
+      if (editMessageTexts) bodyData.message_texts = editMessageTexts;
+      if (editTbankTerminalKey) bodyData.tbank_terminal_key = editTbankTerminalKey;
+      if (editTbankPassword) bodyData.tbank_password = editTbankPassword;
+      if (editVipPrice) bodyData.vip_price = editVipPrice;
+      
       const response = await fetch('https://functions.poehali.dev/fee936e7-7794-4f0a-b8f3-73e64570ada5', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          bot_id: selectedBot.id,
-          payment_url: editPaymentUrl,
-          payment_enabled: editPaymentEnabled
-        })
+        body: JSON.stringify(bodyData)
       });
       
       if (response.ok) {
@@ -279,6 +292,16 @@ const BotsTab = ({
         savingSettings={savingSettings}
         setEditPaymentUrl={setEditPaymentUrl}
         setEditPaymentEnabled={setEditPaymentEnabled}
+        editButtonTexts={editButtonTexts}
+        setEditButtonTexts={setEditButtonTexts}
+        editMessageTexts={editMessageTexts}
+        setEditMessageTexts={setEditMessageTexts}
+        editTbankTerminalKey={editTbankTerminalKey}
+        setEditTbankTerminalKey={setEditTbankTerminalKey}
+        editTbankPassword={editTbankPassword}
+        setEditTbankPassword={setEditTbankPassword}
+        editVipPrice={editVipPrice}
+        setEditVipPrice={setEditVipPrice}
         onSave={saveSettings}
       />
       
