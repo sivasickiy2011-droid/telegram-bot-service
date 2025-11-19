@@ -53,7 +53,8 @@ const PaymentSettingsTab = ({
     setTestResult(null);
     
     try {
-      const response = await fetch('https://functions.poehali.dev/d3348932-2960-4d59-ab09-7708e4dac9b1', {
+      const currentUrl = window.location.origin;
+      const response = await fetch('https://functions.poehali.dev/99bbc805-8eab-41cb-89c3-b0dd02989907', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -61,7 +62,12 @@ const PaymentSettingsTab = ({
         body: JSON.stringify({
           terminal_key: editTbankTerminalKey,
           password: editTbankPassword,
-          amount: editVipPrice * 100
+          amount: editVipPrice * 100,
+          order_id: `test_${Date.now()}`,
+          description: `Тест оплаты для бота ${selectedBot?.name || ''}`,
+          payment_method: paymentMethod,
+          success_url: `${currentUrl}/bots?test=success`,
+          fail_url: `${currentUrl}/bots?test=fail`
         })
       });
       
@@ -73,6 +79,15 @@ const PaymentSettingsTab = ({
           message: 'Тестовый платёж успешно создан!',
           details: data
         });
+        
+        // Открываем ссылку на оплату если есть
+        if (paymentMethod === 'card' && data.payment_url) {
+          window.open(data.payment_url, '_blank');
+        } else if (paymentMethod === 'sbp' && data.qr_image) {
+          // Для СБП можно показать QR-код
+        } else if (paymentMethod === 'gift' && data.gift_url) {
+          window.open(data.gift_url, '_blank');
+        }
       } else {
         setTestResult({
           success: false,
