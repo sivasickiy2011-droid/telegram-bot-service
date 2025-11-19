@@ -72,7 +72,8 @@ export const createBot = async (botData: any) => {
   });
   
   if (!response.ok) {
-    throw new Error('Failed to create bot');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to create bot');
   }
   
   return response.json();

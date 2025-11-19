@@ -97,6 +97,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False
             }
         
+        # Check if user exists
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        check_user_query = f"SELECT id FROM users WHERE id = {user_id}"
+        cursor.execute(check_user_query)
+        user_exists = cursor.fetchone()
+        
+        if not user_exists:
+            cursor.close()
+            conn.close()
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'error': f'User with id {user_id} does not exist'}),
+                'isBase64Encoded': False
+            }
+        
         # Escape strings for simple query
         name_escaped = name.replace("'", "''")
         token_escaped = telegram_token.replace("'", "''")
@@ -104,7 +123,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         description_escaped = description.replace("'", "''")
         logic_escaped = logic.replace("'", "''")
         
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
         query = f'''INSERT INTO bots (user_id, name, telegram_token, template, bot_description, bot_logic, status, moderation_status)
                VALUES ({user_id}, '{name_escaped}', '{token_escaped}', '{template_escaped}', '{description_escaped}', '{logic_escaped}', 'inactive', 'pending') RETURNING *'''
         cursor.execute(query)

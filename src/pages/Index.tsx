@@ -202,10 +202,11 @@ const Index = () => {
       setNewBotLogic('');
       setNewBotTemplate('keys');
       loadUserBots(currentUser.id);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Create bot error:', error);
       toast({
         title: 'Ошибка',
-        description: 'Не удалось создать бота',
+        description: error.message || 'Не удалось создать бота',
         variant: 'destructive',
       });
     } finally {
