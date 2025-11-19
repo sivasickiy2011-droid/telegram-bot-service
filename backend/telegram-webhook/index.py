@@ -371,6 +371,23 @@ def handle_phone_input_and_create_payment(bot_data: Dict, chat_id: int, telegram
     terminal_key = state_data.get('terminal_key', '')
     password = state_data.get('password', '')
     
+    # Получаем внутренний user_id из bot_users
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    user_query = f'''SELECT id FROM t_p5255237_telegram_bot_service.bot_users 
+                     WHERE bot_id = {bot_data['id']} AND telegram_user_id = {telegram_user_id}'''
+    cursor.execute(user_query)
+    user_record = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if not user_record:
+        send_telegram_message(bot_data['telegram_token'], chat_id, "⚠️ Ошибка: пользователь не найден")
+        clear_user_state(bot_data['id'], telegram_user_id)
+        return
+    
+    user_id = user_record['id']
+    
     # Создаём платёж
     import time
     order_id = f'vip_{bot_data["id"]}_{telegram_user_id}_{int(time.time())}'
@@ -412,9 +429,9 @@ def handle_phone_input_and_create_payment(bot_data: Dict, chat_id: int, telegram
             payment_url_escaped = payment_url.replace("'", "''")
             
             query = f'''INSERT INTO t_p5255237_telegram_bot_service.payments 
-                       (bot_id, telegram_user_id, order_id, payment_id, payment_url, amount, status, 
+                       (bot_id, user_id, telegram_user_id, order_id, payment_id, payment_url, amount, status, 
                         customer_phone, customer_first_name, customer_last_name, created_at)
-                       VALUES ({bot_data["id"]}, {telegram_user_id}, '{order_id_escaped}', '{payment_id_escaped}', 
+                       VALUES ({bot_data["id"]}, {user_id}, {telegram_user_id}, '{order_id_escaped}', '{payment_id_escaped}', 
                                '{payment_url_escaped}', {vip_price}, 'NEW', '{phone_escaped}', 
                                '{first_name_escaped}', '{last_name_escaped}', CURRENT_TIMESTAMP)'''
             cursor.execute(query)
