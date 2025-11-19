@@ -49,16 +49,20 @@ const PaymentTest = () => {
 
       if (data.success) {
         setResult(data);
-        if (paymentMethod === 'card' && data.payment_url) {
+        if (data.payment_url) {
           setTimeout(() => {
             window.open(data.payment_url, '_blank');
           }, 500);
         }
       } else {
-        setError(data.error || 'Ошибка создания платежа');
+        const errorMsg = data.error || data.message || 'Ошибка создания платежа';
+        const details = data.details ? JSON.stringify(data.details, null, 2) : '';
+        setError(`${errorMsg}${details ? '\n\nДетали:\n' + details : ''}`);
+        setResult(data);
       }
-    } catch (err) {
-      setError('Ошибка соединения с сервером');
+    } catch (err: any) {
+      setError(`Ошибка соединения: ${err.message || err}`);
+      console.error('Payment error:', err);
     } finally {
       setLoading(false);
     }
