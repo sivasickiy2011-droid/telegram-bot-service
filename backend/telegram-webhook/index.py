@@ -484,7 +484,6 @@ def handle_stats(bot_data: Dict, chat_id: int, telegram_user_id: int):
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Статистика по бесплатным ключам
         free_total_query = f'''SELECT COUNT(*) as total FROM t_p5255237_telegram_bot_service.qr_codes 
                               WHERE bot_id = {bot_data['id']} AND code_type = 'free' '''
         cursor.execute(free_total_query)
@@ -497,7 +496,6 @@ def handle_stats(bot_data: Dict, chat_id: int, telegram_user_id: int):
         
         free_available = free_total - free_used
         
-        # Статистика по VIP ключам
         vip_total_query = f'''SELECT COUNT(*) as total FROM t_p5255237_telegram_bot_service.qr_codes 
                              WHERE bot_id = {bot_data['id']} AND code_type = 'vip' '''
         cursor.execute(vip_total_query)
@@ -510,7 +508,6 @@ def handle_stats(bot_data: Dict, chat_id: int, telegram_user_id: int):
         
         vip_available = vip_total - vip_used
         
-        # Статистика по пользователям
         users_total_query = f'''SELECT COUNT(*) as total FROM t_p5255237_telegram_bot_service.bot_users 
                                WHERE bot_id = {bot_data['id']}'''
         cursor.execute(users_total_query)
@@ -526,7 +523,6 @@ def handle_stats(bot_data: Dict, chat_id: int, telegram_user_id: int):
         cursor.execute(users_with_vip_query)
         users_with_vip = cursor.fetchone()['count']
         
-        # Статистика по платежам
         payments_total_query = f'''SELECT COUNT(*) as total, COALESCE(SUM(amount), 0) as sum 
                                   FROM t_p5255237_telegram_bot_service.payments 
                                   WHERE bot_id = {bot_data['id']}'''
@@ -543,7 +539,6 @@ def handle_stats(bot_data: Dict, chat_id: int, telegram_user_id: int):
         payments_confirmed = payments_confirmed_data['confirmed']
         payments_confirmed_sum = payments_confirmed_data['sum']
         
-        # Платежи за сегодня
         payments_today_query = f'''SELECT COUNT(*) as today, COALESCE(SUM(amount), 0) as sum 
                                   FROM t_p5255237_telegram_bot_service.payments 
                                   WHERE bot_id = {bot_data['id']} AND created_at >= CURRENT_DATE'''
@@ -552,10 +547,27 @@ def handle_stats(bot_data: Dict, chat_id: int, telegram_user_id: int):
         payments_today = payments_today_data['today']
         payments_today_sum = payments_today_data['sum']
         
+        users_list_query = f'''SELECT 
+            bu.first_name, 
+            bu.last_name, 
+            bu.username,
+            bu.received_free_qr,
+            bu.received_vip_qr,
+            p.customer_phone,
+            free_qr.code_number as free_qr_number,
+            vip_qr.code_number as vip_qr_number
+        FROM t_p5255237_telegram_bot_service.bot_users bu
+        LEFT JOIN t_p5255237_telegram_bot_service.payments p ON bu.telegram_user_id = p.telegram_user_id AND bu.bot_id = p.bot_id AND p.status = 'CONFIRMED'
+        LEFT JOIN t_p5255237_telegram_bot_service.qr_codes free_qr ON free_qr.used_by_user_id = bu.id AND free_qr.code_type = 'free'
+        LEFT JOIN t_p5255237_telegram_bot_service.qr_codes vip_qr ON vip_qr.used_by_user_id = bu.id AND vip_qr.code_type = 'vip'
+        WHERE bu.bot_id = {bot_data['id']} AND (bu.received_free_qr = true OR bu.received_vip_qr = true)
+        ORDER BY bu.id'''
+        cursor.execute(users_list_query)
+        users_list = cursor.fetchall()
+        
         cursor.close()
         conn.close()
         
-        # Формируем сообщение
         text = (
             f"📊 <b>Статистика бота</b>\n\n"
             f"<b>🎁 Бесплатные ключи:</b>\n"
@@ -577,6 +589,30 @@ def handle_stats(bot_data: Dict, chat_id: int, telegram_user_id: int):
         )
         
         send_telegram_message(bot_data['telegram_token'], chat_id, text)
+        
+        if users_list:
+            users_text = "\n<b>📋 Список пользователей с QR-кодами:</b>\n\n"
+            for idx, user in enumerate(users_list, 1):
+                first_name = user.get('first_name', '')
+                last_name = user.get('last_name', '')
+                username = user.get('username', '')
+                phone = user.get('customer_phone', 'не указан')
+                free_qr = user.get('free_qr_number')
+                vip_qr = user.get('vip_qr_number')
+                
+                full_name = f"{first_name} {last_name}".strip() or username or 'Без имени'
+                
+                users_text += f"{idx}. {full_name}\n"
+                users_text += f"   📱 Телефон: {phone}\n"
+                
+                if free_qr:
+                    users_text += f"   🎁 Бесплатный QR: №{free_qr}\n"
+                if vip_qr:
+                    users_text += f"   💎 VIP QR: №{vip_qr}\n"
+                
+                users_text += "\n"
+            
+            send_telegram_message(bot_data['telegram_token'], chat_id, users_text)
         
     except Exception as e:
         send_telegram_message(bot_data['telegram_token'], chat_id, f"⚠️ Ошибка при получении статистики: {str(e)}")
