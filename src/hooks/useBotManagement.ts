@@ -8,6 +8,8 @@ interface Bot {
   status: 'active' | 'inactive' | 'error';
   users: number;
   messages: number;
+  interactions_today?: number;
+  interactions_yesterday?: number;
   template: string;
   moderationStatus?: 'pending' | 'approved' | 'rejected';
   moderationReason?: string;
@@ -48,6 +50,8 @@ export const useBotManagement = (currentUser: any) => {
         status: bot.status,
         users: bot.total_users || 0,
         messages: bot.total_messages || 0,
+        interactions_today: bot.interactions_today || 0,
+        interactions_yesterday: bot.interactions_yesterday || 0,
         template: bot.template,
         moderationStatus: bot.moderation_status,
         moderationReason: bot.moderation_reason,

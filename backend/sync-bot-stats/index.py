@@ -67,9 +67,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     SELECT COUNT(DISTINCT telegram_user_id)
                     FROM t_p5255237_telegram_bot_service.bot_users
                     WHERE bot_id = {bot_id}
+                ), 0),
+                interactions_today = COALESCE((
+                    SELECT COUNT(*)
+                    FROM t_p5255237_telegram_bot_service.qr_codes
+                    WHERE bot_id = {bot_id} AND DATE(created_at) = CURRENT_DATE
+                ), 0),
+                interactions_yesterday = COALESCE((
+                    SELECT COUNT(*)
+                    FROM t_p5255237_telegram_bot_service.qr_codes
+                    WHERE bot_id = {bot_id} AND DATE(created_at) = CURRENT_DATE - INTERVAL '1 day'
                 ), 0)
                 WHERE id = {bot_id}
-                RETURNING id, name, total_users, total_messages
+                RETURNING id, name, total_users, total_messages, interactions_today, interactions_yesterday
             '''
         else:
             sync_query = '''
@@ -78,8 +88,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     SELECT COUNT(DISTINCT telegram_user_id)
                     FROM t_p5255237_telegram_bot_service.bot_users bu
                     WHERE bu.bot_id = b.id
+                ), 0),
+                interactions_today = COALESCE((
+                    SELECT COUNT(*)
+                    FROM t_p5255237_telegram_bot_service.qr_codes qr
+                    WHERE qr.bot_id = b.id AND DATE(qr.created_at) = CURRENT_DATE
+                ), 0),
+                interactions_yesterday = COALESCE((
+                    SELECT COUNT(*)
+                    FROM t_p5255237_telegram_bot_service.qr_codes qr
+                    WHERE qr.bot_id = b.id AND DATE(qr.created_at) = CURRENT_DATE - INTERVAL '1 day'
                 ), 0)
-                RETURNING id, name, total_users, total_messages
+                RETURNING id, name, total_users, total_messages, interactions_today, interactions_yesterday
             '''
         
         cursor.execute(sync_query)

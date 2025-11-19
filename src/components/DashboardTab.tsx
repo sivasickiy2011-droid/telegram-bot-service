@@ -9,6 +9,8 @@ interface Bot {
   status: 'active' | 'inactive' | 'error';
   users: number;
   messages: number;
+  interactions_today?: number;
+  interactions_yesterday?: number;
   template: string;
 }
 
@@ -57,21 +59,48 @@ const DashboardTab = ({ bots, getStatusColor }: DashboardTabProps) => {
             </Button>
           </div>
           <div className="space-y-4">
-            {bots.slice(0, 3).map((bot) => (
-              <div key={bot.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${getStatusColor(bot.status)}`} />
-                  <div>
-                    <p className="font-semibold">{bot.name}</p>
-                    <p className="text-sm text-muted-foreground">{bot.users} пользователей</p>
+            {bots.slice(0, 3).map((bot) => {
+              const interactionsToday = bot.interactions_today || 0;
+              const interactionsYesterday = bot.interactions_yesterday || 0;
+              const trendPercent = interactionsYesterday > 0 
+                ? Math.round(((interactionsToday - interactionsYesterday) / interactionsYesterday) * 100)
+                : interactionsToday > 0 ? 100 : 0;
+              const isPositiveTrend = trendPercent >= 0;
+              
+              return (
+                <div key={bot.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className={`w-2 h-2 rounded-full ${getStatusColor(bot.status)}`} />
+                    <div className="flex-1">
+                      <p className="font-semibold">{bot.name}</p>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <span>{bot.users} пользователей</span>
+                        <span className="text-xs">•</span>
+                        <div className="flex items-center gap-1">
+                          <Icon name="Zap" size={12} className="text-orange-500" />
+                          <span>{interactionsToday} взаимодействий</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <div className="flex items-center gap-1 justify-end mb-1">
+                        <Icon 
+                          name={isPositiveTrend ? "TrendingUp" : "TrendingDown"} 
+                          size={16} 
+                          className={isPositiveTrend ? "text-green-500" : "text-red-500"}
+                        />
+                        <span className={`text-xs font-medium ${isPositiveTrend ? 'text-green-500' : 'text-red-500'}`}>
+                          {trendPercent > 0 ? '+' : ''}{trendPercent}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">чем вчера</p>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold">{bot.messages}</p>
-                  <p className="text-xs text-muted-foreground">сообщений</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
 
