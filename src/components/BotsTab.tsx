@@ -188,33 +188,23 @@ const BotsTab = ({
                 </p>
               </div>
               
-              <div className="space-y-3">
-                {newBotTemplate === 'keys' && (
-                  <div className="p-3 rounded-lg border bg-gradient-to-br from-purple-500/10 to-blue-500/10">
-                    <p className="text-xs font-medium mb-1">Шаблон POLYTOPE включает:</p>
-                    <ul className="text-xs text-muted-foreground space-y-1">
-                      <li>• Выдачу бесплатных и VIP ключей</li>
-                      <li>• Интеграцию с платежами</li>
-                      <li>• Управление подписками</li>
-                      <li>• QR-коды для активации</li>
-                    </ul>
-                  </div>
-                )}
-                
-                {!isAdmin && (
-                      <div className="pt-2 border-t border-border/50">
-                        <p className="text-xs text-orange-500 font-medium">✨ Включено в ваш тариф</p>
-                      </div>
-                    )}
-                  </div>
+              {newBotTemplate === 'keys' && (
+                <div className="p-3 rounded-lg border bg-gradient-to-br from-purple-500/10 to-blue-500/10">
+                  <p className="text-xs font-medium mb-1">Шаблон POLYTOPE включает:</p>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Выдачу бесплатных и VIP ключей</li>
+                    <li>• Интеграцию с платежами</li>
+                    <li>• Управление подписками</li>
+                    <li>• QR-коды для активации</li>
+                  </ul>
                 </div>
-                
-                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <p className="text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
-                    <Icon name="Info" size={14} className="mt-0.5 flex-shrink-0" />
-                    <span>Для создания бота получите токен у @BotFather в Telegram. Отправьте команду /newbot и следуйте инструкциям.</span>
-                  </p>
-                </div>
+              )}
+              
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <p className="text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
+                  <Icon name="Info" size={14} className="mt-0.5 flex-shrink-0" />
+                  <span>Для создания бота получите токен у @BotFather в Telegram. Отправьте команду /newbot и следуйте инструкциям.</span>
+                </p>
               </div>
             </div>
             <div className="flex justify-end gap-3">
