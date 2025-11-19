@@ -187,35 +187,53 @@ const PaymentSettingsTab = ({
               </div>
             ) : (
               <>
+                <Card className="p-4 bg-purple-500/10 border-purple-500/20 mb-4">
+                  <div className="flex items-start gap-3">
+                    <Icon name="Info" size={18} className="text-purple-500 mt-0.5 flex-shrink-0" />
+                    <div className="text-xs text-muted-foreground">
+                      <p className="font-medium text-purple-600 dark:text-purple-400 mb-2">
+                        Что использовать из данных T-Bank:
+                      </p>
+                      <ul className="space-y-1">
+                        <li>• <strong>Terminal Key:</strong> используйте <strong>Terminal_id</strong> из личного кабинета</li>
+                        <li>• <strong>Password:</strong> секретный пароль от терминала (выдаётся при создании)</li>
+                      </ul>
+                      <p className="mt-2 text-orange-500">
+                        <strong>Для теста:</strong> Terminal_id = 1763535470794DEMO, Password = CZq2*qpknmH5efA*
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+
                 <div className="space-y-2">
                   <Label htmlFor="tbank-terminal-key">
-                    T-Bank Terminal Key
+                    Terminal_id (Terminal Key)
                   </Label>
                   <Input
                     id="tbank-terminal-key"
                     type="text"
-                    placeholder="ваш_terminal_key"
+                    placeholder="1763535470794DEMO (для теста)"
                     value={editTbankTerminalKey}
                     onChange={(e) => setEditTbankTerminalKey(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Получите в личном кабинете T-Bank
+                    Найдите в личном кабинете T-Bank: Terminal_id
                   </p>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="tbank-password">
-                    T-Bank Password
+                    Password (секретный пароль терминала)
                   </Label>
                   <Input
                     id="tbank-password"
                     type="password"
-                    placeholder="ваш_пароль"
+                    placeholder="CZq2*qpknmH5efA* (для теста)"
                     value={editTbankPassword}
                     onChange={(e) => setEditTbankPassword(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Секретный пароль из личного кабинета T-Bank
+                    Пароль терминала из личного кабинета T-Bank
                   </p>
                 </div>
                 

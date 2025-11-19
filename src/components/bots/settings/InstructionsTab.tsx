@@ -13,9 +13,21 @@ const InstructionsTab = () => {
           </h3>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p><strong>Шаг 1:</strong> Зарегистрируйтесь в T-Bank для бизнеса</p>
-            <p><strong>Шаг 2:</strong> Получите Terminal Key и Password в личном кабинете</p>
-            <p><strong>Шаг 3:</strong> Введите данные на вкладке "Оплата"</p>
-            <p><strong>Шаг 4:</strong> Укажите цену VIP-ключа</p>
+            <p><strong>Шаг 2:</strong> Создайте терминал для приёма платежей</p>
+            <p><strong>Шаг 3:</strong> Найдите в личном кабинете:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Terminal_id</strong> — это ваш Terminal Key (используйте в первом поле)</li>
+              <li><strong>Password</strong> — секретный пароль терминала (выдаётся при создании)</li>
+            </ul>
+            <p><strong>Шаг 4:</strong> Введите данные на вкладке "Оплата"</p>
+            <p><strong>Шаг 5:</strong> Укажите цену VIP-ключа</p>
+            
+            <div className="mt-3 p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+              <p className="font-semibold text-orange-600 dark:text-orange-400 mb-1">Тестовые данные</p>
+              <p className="text-xs">Terminal_id: <code className="bg-muted px-1 py-0.5 rounded">1763535470794DEMO</code></p>
+              <p className="text-xs">Password: <code className="bg-muted px-1 py-0.5 rounded">CZq2*qpknmH5efA*</code></p>
+            </div>
+            
             <p className="pt-2"><strong>API документация:</strong></p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
