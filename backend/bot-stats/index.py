@@ -62,68 +62,79 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'isBase64Encoded': False
         }
     
-    conn = psycopg2.connect(database_url)
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-    
-    bot_query = f'''SELECT id, name, qr_free_count, qr_paid_count, payment_url, payment_enabled, 
-                          total_users, total_messages, created_at 
-                   FROM t_p5255237_telegram_bot_service.bots 
-                   WHERE id = {bot_id}'''
-    cursor.execute(bot_query)
-    bot = cursor.fetchone()
-    
-    if not bot:
+    try:
+        conn = psycopg2.connect(database_url)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        bot_query = f'''SELECT id, name, qr_free_count, qr_paid_count, payment_url, payment_enabled, 
+                              total_users, total_messages, created_at 
+                       FROM t_p5255237_telegram_bot_service.bots 
+                       WHERE id = {bot_id}'''
+        cursor.execute(bot_query)
+        bot = cursor.fetchone()
+        
+        if not bot:
+            cursor.close()
+            conn.close()
+            return {
+                'statusCode': 404,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'error': 'Bot not found'}),
+                'isBase64Encoded': False
+            }
+        
+        qr_stats_query = f'''SELECT 
+                               COUNT(*) as total_qr_codes,
+                               COUNT(CASE WHEN user_id IS NOT NULL THEN 1 END) as used_qr_codes,
+                               COUNT(CASE WHEN user_id IS NULL THEN 1 END) as available_qr_codes,
+                               COUNT(CASE WHEN is_vip = true THEN 1 END) as vip_codes,
+                               COUNT(CASE WHEN is_vip = false THEN 1 END) as free_codes
+                            FROM t_p5255237_telegram_bot_service.qr_codes 
+                            WHERE bot_id = {bot_id}'''
+        cursor.execute(qr_stats_query)
+        qr_stats = cursor.fetchone()
+        
         cursor.close()
         conn.close()
+        
+        stats = {
+            'bot_id': bot['id'],
+            'bot_name': bot['name'],
+            'total_users': bot['total_users'] or 0,
+            'total_messages': bot['total_messages'] or 0,
+            'created_at': str(bot['created_at']),
+            'payment_enabled': bot['payment_enabled'],
+            'payment_url': bot['payment_url'] or '',
+            'qr_codes': {
+                'total': qr_stats['total_qr_codes'] or 0,
+                'used': qr_stats['used_qr_codes'] or 0,
+                'available': qr_stats['available_qr_codes'] or 0,
+                'vip_total': qr_stats['vip_codes'] or 0,
+                'free_total': qr_stats['free_codes'] or 0,
+                'free_configured': bot['qr_free_count'] or 0,
+                'vip_configured': bot['qr_paid_count'] or 0
+            }
+        }
+        
         return {
-            'statusCode': 404,
+            'statusCode': 200,
             'headers': {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*'
             },
-            'body': json.dumps({'error': 'Bot not found'}),
+            'body': json.dumps({'stats': stats}, default=str),
             'isBase64Encoded': False
         }
-    
-    qr_stats_query = f'''SELECT 
-                           COUNT(*) as total_qr_codes,
-                           COUNT(CASE WHEN user_id IS NOT NULL THEN 1 END) as used_qr_codes,
-                           COUNT(CASE WHEN user_id IS NULL THEN 1 END) as available_qr_codes,
-                           COUNT(CASE WHEN is_vip = true THEN 1 END) as vip_codes,
-                           COUNT(CASE WHEN is_vip = false THEN 1 END) as free_codes
-                        FROM t_p5255237_telegram_bot_service.qr_codes 
-                        WHERE bot_id = {bot_id}'''
-    cursor.execute(qr_stats_query)
-    qr_stats = cursor.fetchone()
-    
-    cursor.close()
-    conn.close()
-    
-    stats = {
-        'bot_id': bot['id'],
-        'bot_name': bot['name'],
-        'total_users': bot['total_users'] or 0,
-        'total_messages': bot['total_messages'] or 0,
-        'created_at': str(bot['created_at']),
-        'payment_enabled': bot['payment_enabled'],
-        'payment_url': bot['payment_url'] or '',
-        'qr_codes': {
-            'total': qr_stats['total_qr_codes'] or 0,
-            'used': qr_stats['used_qr_codes'] or 0,
-            'available': qr_stats['available_qr_codes'] or 0,
-            'vip_total': qr_stats['vip_codes'] or 0,
-            'free_total': qr_stats['free_codes'] or 0,
-            'free_configured': bot['qr_free_count'] or 0,
-            'vip_configured': bot['qr_paid_count'] or 0
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({'error': f'Database error: {str(e)}'}),
+            'isBase64Encoded': False
         }
-    }
-    
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-        },
-        'body': json.dumps({'stats': stats}, default=str),
-        'isBase64Encoded': False
-    }
