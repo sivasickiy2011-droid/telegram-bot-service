@@ -78,7 +78,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     try:
         if payment_method == 'card':
-            payment_url = create_card_payment(
+            payment_result = create_card_payment(
                 terminal_key, password, amount, order_id, description, success_url, fail_url
             )
             return {
@@ -90,7 +90,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'body': json.dumps({
                     'success': True,
                     'payment_method': 'card',
-                    'payment_url': payment_url
+                    'payment_url': payment_result['payment_url'],
+                    'payment_id': payment_result['payment_id']
                 })
             }
         
@@ -181,7 +182,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 
 def create_card_payment(terminal_key: str, password: str, amount: int, order_id: str, 
-                        description: str, success_url: str, fail_url: str) -> str:
+                        description: str, success_url: str, fail_url: str) -> Dict[str, str]:
     '''Create card payment via T-Bank API'''
     api_url = 'https://securepay.tinkoff.ru/v2/Init'
     
@@ -225,7 +226,10 @@ def create_card_payment(terminal_key: str, password: str, amount: int, order_id:
             data = json.loads(response.read().decode('utf-8'))
             
             if data.get('Success'):
-                return data.get('PaymentURL', '')
+                return {
+                    'payment_url': data.get('PaymentURL', ''),
+                    'payment_id': data.get('PaymentId', '')
+                }
             else:
                 raise Exception(data.get('Message', 'Payment creation failed'))
     
