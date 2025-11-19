@@ -108,10 +108,15 @@ const BotsTab = ({
   const [editTbankPassword, setEditTbankPassword] = useState('');
   const [editVipPrice, setEditVipPrice] = useState(500);
   
-  const openSettings = (bot: Bot) => {
+  const openSettings = (bot: any) => {
     setSelectedBot(bot);
     setEditPaymentUrl(bot.payment_url || '');
     setEditPaymentEnabled(bot.payment_enabled || false);
+    setEditButtonTexts(bot.button_texts || null);
+    setEditMessageTexts(bot.message_texts || null);
+    setEditTbankTerminalKey(bot.tbank_terminal_key || '');
+    setEditTbankPassword(bot.tbank_password || '');
+    setEditVipPrice(bot.vip_price || 500);
     setSettingsOpen(true);
   };
   
@@ -182,10 +187,9 @@ const BotsTab = ({
       if (response.ok) {
         toast({
           title: 'Настройки сохранены',
-          description: 'Платежная ссылка обновлена'
+          description: 'Все изменения успешно применены'
         });
         setSettingsOpen(false);
-        window.location.reload();
       } else {
         const data = await response.json();
         toast({
