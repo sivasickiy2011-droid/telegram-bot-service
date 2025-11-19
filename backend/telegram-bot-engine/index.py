@@ -89,6 +89,59 @@ def get_free_qr_key(bot_id: int, user_id: int) -> Optional[Dict]:
     conn.close()
     return dict(qr_code) if qr_code else None
 
+def get_vip_qr_key(bot_id: int, user_id: int) -> Optional[Dict]:
+    '''Получить свободный VIP QR-ключ'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
+               WHERE bot_id = {bot_id} AND code_type = 'paid' AND is_used = false 
+               ORDER BY code_number LIMIT 1'''
+    cursor.execute(query)
+    qr_code = cursor.fetchone()
+    
+    if qr_code:
+        update_query = f'''UPDATE t_p5255237_telegram_bot_service.qr_codes 
+                          SET is_used = true, used_by_user_id = {user_id}, used_at = CURRENT_TIMESTAMP 
+                          WHERE id = {qr_code['id']}'''
+        cursor.execute(update_query)
+        conn.commit()
+    
+    cursor.close()
+    conn.close()
+    return dict(qr_code) if qr_code else None
+
+def save_payment_to_db(bot_id: int, telegram_user_id: int, order_id: str, payment_id: str, 
+                       payment_url: str, amount: int, phone: str, first_name: str, last_name: str) -> bool:
+    '''Сохранить платёж в БД'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    phone_escaped = phone.replace("'", "''")
+    first_name_escaped = first_name.replace("'", "''")
+    last_name_escaped = last_name.replace("'", "''")
+    order_id_escaped = order_id.replace("'", "''")
+    payment_id_escaped = payment_id.replace("'", "''")
+    payment_url_escaped = payment_url.replace("'", "''")
+    
+    query = f'''INSERT INTO t_p5255237_telegram_bot_service.payments 
+               (bot_id, telegram_user_id, order_id, payment_id, payment_url, amount, status, 
+                customer_phone, customer_first_name, customer_last_name, created_at)
+               VALUES ({bot_id}, {telegram_user_id}, '{order_id_escaped}', '{payment_id_escaped}', 
+                       '{payment_url_escaped}', {amount}, 'NEW', '{phone_escaped}', 
+                       '{first_name_escaped}', '{last_name_escaped}', CURRENT_TIMESTAMP)'''
+    
+    try:
+        cursor.execute(query)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except:
+        cursor.close()
+        conn.close()
+        return False
+
 def generate_qr_image(code_number: int) -> BytesIO:
     '''Генерирует QR-код как изображение'''
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
@@ -203,12 +256,87 @@ async def handle_secret_shop(message: types.Message, bot_id: int = None):
     
     await message.answer(text, reply_markup=keyboard)
 
-async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext):
+async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext, bot: Bot):
     '''Обработка покупки VIP-ключа - показывает информацию и запускает форму'''
     
-    # Получаем данные бота из БД
+    telegram_user_id = message.from_user.id
+    
+    # Проверяем есть ли у пользователя платёж со статусом NEW или в процессе
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    payment_check_query = f'''SELECT order_id, status FROM t_p5255237_telegram_bot_service.payments 
+                              WHERE bot_id = {bot_id} AND telegram_user_id = {telegram_user_id}
+                              AND status IN ('NEW', 'AUTHORIZED', 'CONFIRMED')
+                              ORDER BY created_at DESC LIMIT 1'''
+    cursor.execute(payment_check_query)
+    existing_payment = cursor.fetchone()
+    
+    if existing_payment:
+        order_id = existing_payment['order_id']
+        status = existing_payment['status']
+        
+        if status == 'CONFIRMED':
+            # Платёж уже подтверждён, выдаём ключ если ещё не выдан
+            qr_key = get_vip_qr_key(bot_id, telegram_user_id)
+            
+            if qr_key:
+                qr_image = generate_qr_image(qr_key['code_number'])
+                text = (
+                    f"✅ Ключ оплачен! Спасибо за покупку!\n\n"
+                    f"💎 Ваш VIP QR-код №{qr_key['code_number']}\n\n"
+                    f"Покажите этот код на кассе для получения доступа к VIP-товарам"
+                )
+                await message.answer_photo(
+                    photo=types.BufferedInputFile(qr_image.read(), filename=f"vip_key_{qr_key['code_number']}.png"),
+                    caption=text
+                )
+            else:
+                await message.answer("✅ У вас уже есть оплаченный VIP-ключ!")
+            
+            cursor.close()
+            conn.close()
+            return
+        
+        # Проверяем статус платежа в T-Bank
+        await message.answer("⏳ Проверяю статус вашего платежа...")
+        
+        try:
+            import urllib.request
+            
+            req = urllib.request.Request(
+                'https://functions.poehali.dev/b4079ccb-abcb-4171-b656-2462d93e1ac9',
+                data=json.dumps({'order_id': order_id}).encode('utf-8'),
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            
+            with urllib.request.urlopen(req, timeout=10) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                
+                if result.get('confirmed'):
+                    # Платёж подтверждён! Выдаём VIP-ключ
+                    qr_key = get_vip_qr_key(bot_id, telegram_user_id)
+                    
+                    if qr_key:
+                        qr_image = generate_qr_image(qr_key['code_number'])
+                        text = (
+                            f"✅ Ключ оплачен! Спасибо за покупку!\n\n"
+                            f"💎 Ваш VIP QR-код №{qr_key['code_number']}\n\n"
+                            f"Покажите этот код на кассе для получения доступа к VIP-товарам"
+                        )
+                        await message.answer_photo(
+                            photo=types.BufferedInputFile(qr_image.read(), filename=f"vip_key_{qr_key['code_number']}.png"),
+                            caption=text
+                        )
+                        cursor.close()
+                        conn.close()
+                        return
+                    
+        except:
+            pass
+    
+    # Получаем данные бота из БД
     query = f'''SELECT payment_enabled, vip_price, tbank_terminal_key, tbank_password,
                        vip_promo_enabled, vip_promo_start_date, vip_promo_end_date,
                        vip_purchase_message
@@ -302,7 +430,7 @@ async def process_first_name(message: types.Message, state: FSMContext):
     await message.answer("📝 Введите ваш *Телефон*:", parse_mode='Markdown')
     await state.set_state(BotStates.waiting_for_phone)
 
-async def process_phone_and_create_payment(message: types.Message, state: FSMContext):
+async def process_phone_and_create_payment(message: types.Message, state: FSMContext, bot: Bot):
     '''Обработка телефона и создание платежа'''
     user_data = await state.get_data()
     last_name = user_data.get('last_name')
@@ -314,13 +442,12 @@ async def process_phone_and_create_payment(message: types.Message, state: FSMCon
     terminal_key = user_data.get('terminal_key')
     password = user_data.get('password')
     
-    # Создаём платёж
     try:
         import urllib.request
         import urllib.error
         
-        user_id = message.from_user.id
-        order_id = f'vip_{bot_id}_{user_id}_{int(asyncio.get_event_loop().time())}'
+        telegram_user_id = message.from_user.id
+        order_id = f'vip_{bot_id}_{telegram_user_id}_{int(asyncio.get_event_loop().time())}'
         
         payment_data = {
             'terminal_key': terminal_key,
@@ -332,7 +459,7 @@ async def process_phone_and_create_payment(message: types.Message, state: FSMCon
             'success_url': 'https://t.me',
             'fail_url': 'https://t.me',
             'phone': phone,
-            'email': f'{user_id}@telegram.user'
+            'email': f'{telegram_user_id}@telegram.user'
         }
         
         req = urllib.request.Request(
@@ -347,6 +474,11 @@ async def process_phone_and_create_payment(message: types.Message, state: FSMCon
             
             if result.get('success') and result.get('payment_url'):
                 payment_url = result['payment_url']
+                payment_id = result.get('payment_id', order_id)
+                
+                # Сохраняем платёж в БД
+                save_payment_to_db(bot_id, telegram_user_id, order_id, payment_id, 
+                                  payment_url, vip_price, phone, first_name, last_name)
                 
                 text = (
                     f"✅ Данные получены!\n\n"
@@ -360,6 +492,15 @@ async def process_phone_and_create_payment(message: types.Message, state: FSMCon
                 ])
                 
                 await message.answer(text, reply_markup=keyboard)
+                
+                # Отправляем сообщение о проверке статуса
+                await message.answer("⏳ Статус: на проверке...")
+                
+                # Запускаем проверку статуса платежа
+                asyncio.create_task(check_payment_status_loop(
+                    bot, message.chat.id, order_id, bot_id, telegram_user_id
+                ))
+                
                 await state.clear()
             else:
                 error_msg = result.get('error', 'Неизвестная ошибка')
@@ -370,12 +511,65 @@ async def process_phone_and_create_payment(message: types.Message, state: FSMCon
         await message.answer(f"⚠️ Ошибка при создании платежа: {str(e)}")
         await state.clear()
 
-async def callback_handler(callback: types.CallbackQuery, bot_id: int, state: FSMContext):
+async def check_payment_status_loop(bot: Bot, chat_id: int, order_id: str, bot_id: int, telegram_user_id: int):
+    '''Проверка статуса платежа с несколькими попытками: 5 сек, 10 сек, 60 сек'''
+    delays = [5, 10, 60]  # Задержки между проверками
+    
+    for delay in delays:
+        await asyncio.sleep(delay)
+        
+        # Проверяем статус через API
+        try:
+            import urllib.request
+            
+            req = urllib.request.Request(
+                'https://functions.poehali.dev/b4079ccb-abcb-4171-b656-2462d93e1ac9',
+                data=json.dumps({'order_id': order_id}).encode('utf-8'),
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            
+            with urllib.request.urlopen(req, timeout=10) as response:
+                result = json.loads(response.read().decode('utf-8'))
+                
+                if result.get('confirmed'):
+                    # Платёж подтверждён! Выдаём VIP-ключ
+                    qr_key = get_vip_qr_key(bot_id, telegram_user_id)
+                    
+                    if qr_key:
+                        qr_image = generate_qr_image(qr_key['code_number'])
+                        
+                        text = (
+                            f"✅ Ключ оплачен! Спасибо за покупку!\n\n"
+                            f"💎 Ваш VIP QR-код №{qr_key['code_number']}\n\n"
+                            f"Покажите этот код на кассе для получения доступа к VIP-товарам"
+                        )
+                        
+                        await bot.send_photo(
+                            chat_id=chat_id,
+                            photo=types.BufferedInputFile(qr_image.read(), filename=f"vip_key_{qr_key['code_number']}.png"),
+                            caption=text
+                        )
+                    else:
+                        await bot.send_message(chat_id, "✅ Оплата подтверждена! Но VIP-ключи закончились. Обратитесь к администратору.")
+                    
+                    return  # Выходим из цикла
+                    
+        except:
+            pass  # Игнорируем ошибки проверки
+    
+    # Если после всех попыток платёж не подтверждён
+    await bot.send_message(
+        chat_id,
+        "⏱ Время проверки истекло. Если вы оплатили заказ, нажмите 'Купить VIP-ключ' снова для проверки статуса."
+    )
+
+async def callback_handler(callback: types.CallbackQuery, bot_id: int, state: FSMContext, bot: Bot):
     '''Обработчик inline кнопок'''
     if callback.data == "secret_shop":
         await handle_secret_shop(callback.message, bot_id)
     elif callback.data == "buy_vip":
-        await handle_buy_vip(callback.message, bot_id, state)
+        await handle_buy_vip(callback.message, bot_id, state, bot)
     elif callback.data == "start_payment_form":
         await start_payment_form(callback, state)
     elif callback.data == "main_menu":
@@ -405,7 +599,7 @@ async def run_bot(bot_data: Dict):
     
     @dp.message(F.text == "💎 Купить VIP-ключ")
     async def buy_vip_handler(message: types.Message, state: FSMContext):
-        await handle_buy_vip(message, bot_id, state)
+        await handle_buy_vip(message, bot_id, state, bot)
     
     @dp.message(F.text == "❓ Помощь")
     async def help_handler(message: types.Message):
@@ -421,11 +615,11 @@ async def run_bot(bot_data: Dict):
     
     @dp.message(BotStates.waiting_for_phone)
     async def phone_handler(message: types.Message, state: FSMContext):
-        await process_phone_and_create_payment(message, state)
+        await process_phone_and_create_payment(message, state, bot)
     
     @dp.callback_query()
     async def callback_handler_wrapper(callback: types.CallbackQuery, state: FSMContext):
-        await callback_handler(callback, bot_id, state)
+        await callback_handler(callback, bot_id, state, bot)
     
     print(f"✅ Bot '{bot_data['name']}' (ID: {bot_id}) started")
     await dp.start_polling(bot, skip_updates=True)
