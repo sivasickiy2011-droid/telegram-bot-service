@@ -218,29 +218,46 @@ def handle_secret_shop(bot_data: Dict, chat_id: int):
 def handle_buy_vip(bot_data: Dict, chat_id: int):
     '''Обработка покупки VIP-ключа'''
     payment_enabled = bot_data.get('payment_enabled', False)
-    payment_url = bot_data.get('payment_url', '')
+    terminal_key = bot_data.get('tbank_terminal_key')
+    password = bot_data.get('tbank_password')
+    vip_price = bot_data.get('vip_price', 500)
+    vip_purchase_message = bot_data.get('vip_purchase_message', 'VIP-ключ открывает доступ к эксклюзивным материалам и привилегиям.')
     
-    if payment_enabled and payment_url:
+    if not payment_enabled or not terminal_key or not password:
         text = (
             "💎 VIP-ключ дает доступ к Тайной витрине!\n\n"
-            "Стоимость: 500 ₽\n\n"
-            "После оплаты вы получите VIP QR-код с номером от 501 до 1000.\n\n"
-            "👇 Нажмите кнопку ниже для оплаты:"
-        )
-        
-        inline_keyboard = create_inline_keyboard([
-            [{'text': '💳 Перейти к оплате', 'url': payment_url}]
-        ])
-        
-        send_telegram_message(bot_data['telegram_token'], chat_id, text, inline_keyboard)
-    else:
-        text = (
-            "💎 VIP-ключ дает доступ к Тайной витрине!\n\n"
-            "Стоимость: 500 ₽\n\n"
-            "После оплаты вы получите VIP QR-код с номером от 501 до 1000.\n\n"
-            "⚠️ Оплата пока недоступна. Обратитесь к администратору."
+            "⚠️ Оплата временно недоступна. Обратитесь к администратору."
         )
         send_telegram_message(bot_data['telegram_token'], chat_id, text)
+        return
+    
+    # Формируем текст с информацией
+    text = f"{vip_purchase_message}\n\n"
+    text += f"💰 Цена: {vip_price} ₽\n"
+    
+    # Добавляем даты если включено
+    if bot_data.get('vip_promo_enabled') and bot_data.get('vip_promo_start_date') and bot_data.get('vip_promo_end_date'):
+        from datetime import datetime
+        start_date = bot_data['vip_promo_start_date']
+        end_date = bot_data['vip_promo_end_date']
+        
+        # Форматируем даты
+        if isinstance(start_date, str):
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            
+        text += f"📅 Даты действия: {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}\n"
+    
+    text += "\n✅ Для оплаты нажмите кнопку ниже"
+    
+    # Кнопки
+    inline_keyboard = create_inline_keyboard([
+        [{'text': '✅ Оплатить VIP-ключ', 'callback_data': 'start_payment'}],
+        [{'text': '⬅ Вернуться назад', 'callback_data': 'main_menu'}]
+    ])
+    
+    send_telegram_message(bot_data['telegram_token'], chat_id, text, inline_keyboard)
 
 def handle_help(bot_data: Dict, chat_id: int):
     '''Помощь пользователю'''
