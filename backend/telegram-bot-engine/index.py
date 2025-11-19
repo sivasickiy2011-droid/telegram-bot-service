@@ -336,6 +336,14 @@ async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext,
                     
         except:
             pass
+        
+        # Закрываем соединение после проверки существующих платежей
+        cursor.close()
+        conn.close()
+    
+    # Открываем новое соединение для получения данных бота
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
     
     # Получаем данные бота из БД
     query = f'''SELECT payment_enabled, vip_price, tbank_terminal_key, tbank_password,
