@@ -200,15 +200,90 @@ async def handle_secret_shop(message: types.Message, bot_id: int = None):
     
     await message.answer(text, reply_markup=keyboard)
 
-async def handle_buy_vip(message: types.Message):
+async def handle_buy_vip(message: types.Message, bot_id: int):
     '''Обработка покупки VIP-ключа'''
-    text = (
-        "💎 VIP-ключ дает доступ к Тайной витрине!\n\n"
-        "Стоимость: 500 ₽\n\n"
-        "После оплаты вы получите VIP QR-код с номером от 501 до 1000.\n\n"
-        "⚠️ Функция оплаты появится в следующей версии."
-    )
-    await message.answer(text)
+    
+    # Получаем данные бота из БД
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    query = f'''SELECT payment_enabled, vip_price, tbank_terminal_key, tbank_password 
+                FROM t_p5255237_telegram_bot_service.bots WHERE id = {bot_id}'''
+    cursor.execute(query)
+    bot_data = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if not bot_data or not bot_data.get('payment_enabled'):
+        text = (
+            "💎 VIP-ключ дает доступ к Тайной витрине!\n\n"
+            "⚠️ Оплата временно недоступна. Обратитесь к администратору."
+        )
+        await message.answer(text)
+        return
+    
+    vip_price = bot_data.get('vip_price', 500)
+    terminal_key = bot_data.get('tbank_terminal_key')
+    password = bot_data.get('tbank_password')
+    
+    if not terminal_key or not password:
+        text = (
+            "💎 VIP-ключ дает доступ к Тайной витрине!\n\n"
+            "⚠️ Оплата не настроена. Обратитесь к администратору."
+        )
+        await message.answer(text)
+        return
+    
+    # Создаём платёж через create-payment функцию
+    try:
+        import urllib.request
+        import urllib.error
+        
+        user_id = message.from_user.id
+        order_id = f'vip_{bot_id}_{user_id}_{int(asyncio.get_event_loop().time())}'
+        
+        payment_data = {
+            'terminal_key': terminal_key,
+            'password': password,
+            'amount': vip_price * 100,  # Копейки
+            'order_id': order_id,
+            'description': f'VIP-ключ для бота #{bot_id}',
+            'payment_method': 'card',
+            'success_url': 'https://t.me',
+            'fail_url': 'https://t.me'
+        }
+        
+        req = urllib.request.Request(
+            'https://functions.poehali.dev/99bbc805-8eab-41cb-89c3-b0dd02989907',
+            data=json.dumps(payment_data).encode('utf-8'),
+            headers={'Content-Type': 'application/json'},
+            method='POST'
+        )
+        
+        with urllib.request.urlopen(req, timeout=10) as response:
+            result = json.loads(response.read().decode('utf-8'))
+            
+            if result.get('success') and result.get('payment_url'):
+                payment_url = result['payment_url']
+                
+                text = (
+                    f"💎 VIP-ключ дает доступ к Тайной витрине!\n\n"
+                    f"💰 Стоимость: {vip_price} ₽\n\n"
+                    f"После оплаты вы получите VIP QR-код с номером от 501 до 1000.\n\n"
+                    f"👇 Нажмите кнопку для оплаты:"
+                )
+                
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="💳 Оплатить картой", url=payment_url)],
+                    [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]
+                ])
+                
+                await message.answer(text, reply_markup=keyboard)
+            else:
+                error_msg = result.get('error', 'Неизвестная ошибка')
+                await message.answer(f"⚠️ Ошибка создания платежа: {error_msg}")
+                
+    except Exception as e:
+        await message.answer(f"⚠️ Ошибка при создании платежа: {str(e)}")
 
 async def handle_help(message: types.Message):
     '''Помощь пользователю'''
@@ -226,7 +301,7 @@ async def callback_handler(callback: types.CallbackQuery, bot_id: int):
     if callback.data == "secret_shop":
         await handle_secret_shop(callback.message, bot_id)
     elif callback.data == "buy_vip":
-        await handle_buy_vip(callback.message)
+        await handle_buy_vip(callback.message, bot_id)
     elif callback.data == "main_menu":
         await cmd_start(callback.message, bot_id)
     await callback.answer()
@@ -252,7 +327,7 @@ async def run_bot(bot_data: Dict):
     
     @dp.message(F.text == "💎 Купить VIP-ключ")
     async def buy_vip_handler(message: types.Message):
-        await handle_buy_vip(message)
+        await handle_buy_vip(message, bot_id)
     
     @dp.message(F.text == "❓ Помощь")
     async def help_handler(message: types.Message):
