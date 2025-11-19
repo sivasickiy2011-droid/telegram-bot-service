@@ -22,6 +22,14 @@ interface PaymentSettingsTabProps {
   setEditTbankTerminalKey: (value: string) => void;
   editTbankPassword: string;
   setEditTbankPassword: (value: string) => void;
+  editVipPromoEnabled: boolean;
+  setEditVipPromoEnabled: (value: boolean) => void;
+  editVipPromoStartDate: string;
+  setEditVipPromoStartDate: (value: string) => void;
+  editVipPromoEndDate: string;
+  setEditVipPromoEndDate: (value: string) => void;
+  editVipPurchaseMessage: string;
+  setEditVipPurchaseMessage: (value: string) => void;
 }
 
 const PaymentSettingsTab = ({
@@ -34,6 +42,14 @@ const PaymentSettingsTab = ({
   setEditTbankTerminalKey,
   editTbankPassword,
   setEditTbankPassword,
+  editVipPromoEnabled,
+  setEditVipPromoEnabled,
+  editVipPromoStartDate,
+  setEditVipPromoStartDate,
+  editVipPromoEndDate,
+  setEditVipPromoEndDate,
+  editVipPurchaseMessage,
+  setEditVipPurchaseMessage,
 }: PaymentSettingsTabProps) => {
   const [testingPayment, setTestingPayment] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean; message: string; details?: any} | null>(null);
@@ -130,6 +146,53 @@ const PaymentSettingsTab = ({
                 value={editVipPrice}
                 onChange={(e) => setEditVipPrice(parseInt(e.target.value) || 0)}
               />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="vip-purchase-message">Сообщение при покупке VIP-ключа</Label>
+              <textarea
+                id="vip-purchase-message"
+                className="w-full min-h-[80px] p-2 border rounded-md bg-background text-sm"
+                value={editVipPurchaseMessage}
+                onChange={(e) => setEditVipPurchaseMessage(e.target.value)}
+                placeholder="Короткое описание что даёт VIP-ключ..."
+              />
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="vip-promo-enabled"
+                  checked={editVipPromoEnabled}
+                  onCheckedChange={(checked) => setEditVipPromoEnabled(checked as boolean)}
+                />
+                <Label htmlFor="vip-promo-enabled" className="cursor-pointer">
+                  Указать период акции
+                </Label>
+              </div>
+              
+              {editVipPromoEnabled && (
+                <div className="grid grid-cols-2 gap-3 pl-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="vip-promo-start">Начало акции</Label>
+                    <Input
+                      id="vip-promo-start"
+                      type="date"
+                      value={editVipPromoStartDate}
+                      onChange={(e) => setEditVipPromoStartDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="vip-promo-end">Конец акции</Label>
+                    <Input
+                      id="vip-promo-end"
+                      type="date"
+                      value={editVipPromoEndDate}
+                      onChange={(e) => setEditVipPromoEndDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="space-y-3">

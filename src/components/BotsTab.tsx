@@ -128,6 +128,10 @@ const BotsTab = ({
   const [editOfferImageUrl, setEditOfferImageUrl] = useState('');
   const [editPrivacyConsentEnabled, setEditPrivacyConsentEnabled] = useState(false);
   const [editPrivacyConsentText, setEditPrivacyConsentText] = useState('');
+  const [editVipPromoEnabled, setEditVipPromoEnabled] = useState(false);
+  const [editVipPromoStartDate, setEditVipPromoStartDate] = useState('');
+  const [editVipPromoEndDate, setEditVipPromoEndDate] = useState('');
+  const [editVipPurchaseMessage, setEditVipPurchaseMessage] = useState('VIP-ключ открывает доступ к эксклюзивным материалам и привилегиям.');
   
   const openSettings = (bot: any) => {
     setSelectedBot(bot);
@@ -147,6 +151,10 @@ const BotsTab = ({
     setEditOfferImageUrl(bot.offer_image_url || '');
     setEditPrivacyConsentEnabled(bot.privacy_consent_enabled || false);
     setEditPrivacyConsentText(bot.privacy_consent_text || 'Я согласен на обработку персональных данных');
+    setEditVipPromoEnabled(bot.vip_promo_enabled || false);
+    setEditVipPromoStartDate(bot.vip_promo_start_date || '');
+    setEditVipPromoEndDate(bot.vip_promo_end_date || '');
+    setEditVipPurchaseMessage(bot.vip_purchase_message || 'VIP-ключ открывает доступ к эксклюзивным материалам и привилегиям.');
     setSettingsOpen(true);
   };
   
@@ -214,6 +222,10 @@ const BotsTab = ({
       if (editOfferImageUrl !== undefined) bodyData.offer_image_url = editOfferImageUrl;
       bodyData.privacy_consent_enabled = editPrivacyConsentEnabled;
       if (editPrivacyConsentText) bodyData.privacy_consent_text = editPrivacyConsentText;
+      bodyData.vip_promo_enabled = editVipPromoEnabled;
+      if (editVipPromoStartDate) bodyData.vip_promo_start_date = editVipPromoStartDate;
+      if (editVipPromoEndDate) bodyData.vip_promo_end_date = editVipPromoEndDate;
+      if (editVipPurchaseMessage) bodyData.vip_purchase_message = editVipPurchaseMessage;
       
       console.log('Saving bot settings:', bodyData);
       
@@ -410,6 +422,14 @@ const BotsTab = ({
         setEditPrivacyConsentEnabled={setEditPrivacyConsentEnabled}
         editPrivacyConsentText={editPrivacyConsentText}
         setEditPrivacyConsentText={setEditPrivacyConsentText}
+        editVipPromoEnabled={editVipPromoEnabled}
+        setEditVipPromoEnabled={setEditVipPromoEnabled}
+        editVipPromoStartDate={editVipPromoStartDate}
+        setEditVipPromoStartDate={setEditVipPromoStartDate}
+        editVipPromoEndDate={editVipPromoEndDate}
+        setEditVipPromoEndDate={setEditVipPromoEndDate}
+        editVipPurchaseMessage={editVipPurchaseMessage}
+        setEditVipPurchaseMessage={setEditVipPurchaseMessage}
         onSave={saveSettings}
       />
       

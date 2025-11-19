@@ -15,6 +15,9 @@ from io import BytesIO
 
 class BotStates(StatesGroup):
     main_menu = State()
+    waiting_for_last_name = State()
+    waiting_for_first_name = State()
+    waiting_for_phone = State()
 
 def get_db_connection():
     '''Создает подключение к базе данных'''
@@ -200,13 +203,15 @@ async def handle_secret_shop(message: types.Message, bot_id: int = None):
     
     await message.answer(text, reply_markup=keyboard)
 
-async def handle_buy_vip(message: types.Message, bot_id: int):
-    '''Обработка покупки VIP-ключа'''
+async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext):
+    '''Обработка покупки VIP-ключа - показывает информацию и запускает форму'''
     
     # Получаем данные бота из БД
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
-    query = f'''SELECT payment_enabled, vip_price, tbank_terminal_key, tbank_password 
+    query = f'''SELECT payment_enabled, vip_price, tbank_terminal_key, tbank_password,
+                       vip_promo_enabled, vip_promo_start_date, vip_promo_end_date,
+                       vip_purchase_message
                 FROM t_p5255237_telegram_bot_service.bots WHERE id = {bot_id}'''
     cursor.execute(query)
     bot_data = cursor.fetchone()
@@ -224,6 +229,7 @@ async def handle_buy_vip(message: types.Message, bot_id: int):
     vip_price = bot_data.get('vip_price', 500)
     terminal_key = bot_data.get('tbank_terminal_key')
     password = bot_data.get('tbank_password')
+    vip_purchase_message = bot_data.get('vip_purchase_message', 'VIP-ключ открывает доступ к эксклюзивным материалам и привилегиям.')
     
     if not terminal_key or not password:
         text = (
@@ -233,7 +239,82 @@ async def handle_buy_vip(message: types.Message, bot_id: int):
         await message.answer(text)
         return
     
-    # Создаём платёж через create-payment функцию
+    # Формируем текст с информацией
+    text = f"{vip_purchase_message}\n\n"
+    text += f"💰 Цена: {vip_price} ₽\n"
+    
+    # Добавляем даты если включено
+    if bot_data.get('vip_promo_enabled') and bot_data.get('vip_promo_start_date') and bot_data.get('vip_promo_end_date'):
+        from datetime import datetime
+        start_date = bot_data['vip_promo_start_date']
+        end_date = bot_data['vip_promo_end_date']
+        
+        # Форматируем даты
+        if isinstance(start_date, str):
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        if isinstance(end_date, str):
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            
+        text += f"📅 Даты действия: {start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}\n"
+    
+    # Кнопки
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Оплатить VIP-ключ", callback_data="start_payment_form")],
+        [InlineKeyboardButton(text="⬅ Вернуться назад", callback_data="main_menu")]
+    ])
+    
+    # Сохраняем данные в state для последующей оплаты
+    await state.update_data(
+        bot_id=bot_id,
+        vip_price=vip_price,
+        terminal_key=terminal_key,
+        password=password
+    )
+    
+    await message.answer(text, reply_markup=keyboard)
+
+async def handle_help(message: types.Message):
+    '''Помощь пользователю'''
+    text = (
+        "❓ Как пользоваться ботом:\n\n"
+        "🎁 Получить бесплатный ключ - выдает QR-код (номера 1-500)\n"
+        "🔐 Узнать про Тайную витрину - информация о закрытой распродаже\n"
+        "💎 Купить VIP-ключ - получить доступ к эксклюзивным товарам\n\n"
+        "По всем вопросам пишите в поддержку."
+    )
+    await message.answer(text)
+
+async def start_payment_form(callback: types.CallbackQuery, state: FSMContext):
+    '''Начало заполнения формы для оплаты'''
+    await callback.message.answer("📝 Введите вашу *Фамилию*:", parse_mode='Markdown')
+    await state.set_state(BotStates.waiting_for_last_name)
+    await callback.answer()
+
+async def process_last_name(message: types.Message, state: FSMContext):
+    '''Обработка ввода фамилии'''
+    await state.update_data(last_name=message.text)
+    await message.answer("📝 Введите ваше *Имя*:", parse_mode='Markdown')
+    await state.set_state(BotStates.waiting_for_first_name)
+
+async def process_first_name(message: types.Message, state: FSMContext):
+    '''Обработка ввода имени'''
+    await state.update_data(first_name=message.text)
+    await message.answer("📝 Введите ваш *Телефон*:", parse_mode='Markdown')
+    await state.set_state(BotStates.waiting_for_phone)
+
+async def process_phone_and_create_payment(message: types.Message, state: FSMContext):
+    '''Обработка телефона и создание платежа'''
+    user_data = await state.get_data()
+    last_name = user_data.get('last_name')
+    first_name = user_data.get('first_name')
+    phone = message.text
+    
+    bot_id = user_data.get('bot_id')
+    vip_price = user_data.get('vip_price')
+    terminal_key = user_data.get('terminal_key')
+    password = user_data.get('password')
+    
+    # Создаём платёж
     try:
         import urllib.request
         import urllib.error
@@ -244,12 +325,14 @@ async def handle_buy_vip(message: types.Message, bot_id: int):
         payment_data = {
             'terminal_key': terminal_key,
             'password': password,
-            'amount': vip_price * 100,  # Копейки
+            'amount': vip_price * 100,
             'order_id': order_id,
-            'description': f'VIP-ключ для бота #{bot_id}',
+            'description': f'VIP-ключ для {first_name} {last_name}',
             'payment_method': 'card',
             'success_url': 'https://t.me',
-            'fail_url': 'https://t.me'
+            'fail_url': 'https://t.me',
+            'phone': phone,
+            'email': f'{user_id}@telegram.user'
         }
         
         req = urllib.request.Request(
@@ -266,44 +349,38 @@ async def handle_buy_vip(message: types.Message, bot_id: int):
                 payment_url = result['payment_url']
                 
                 text = (
-                    f"💎 VIP-ключ дает доступ к Тайной витрине!\n\n"
-                    f"💰 Стоимость: {vip_price} ₽\n\n"
-                    f"После оплаты вы получите VIP QR-код с номером от 501 до 1000.\n\n"
-                    f"👇 Нажмите кнопку для оплаты:"
+                    f"✅ Данные получены!\n\n"
+                    f"👤 ФИО: {first_name} {last_name}\n"
+                    f"📱 Телефон: {phone}\n\n"
+                    f"💳 Нажмите кнопку для оплаты:"
                 )
                 
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="💳 Оплатить картой", url=payment_url)],
-                    [InlineKeyboardButton(text="🔙 Назад", callback_data="main_menu")]
+                    [InlineKeyboardButton(text="💳 Оплатить", url=payment_url)]
                 ])
                 
                 await message.answer(text, reply_markup=keyboard)
+                await state.clear()
             else:
                 error_msg = result.get('error', 'Неизвестная ошибка')
                 await message.answer(f"⚠️ Ошибка создания платежа: {error_msg}")
+                await state.clear()
                 
     except Exception as e:
         await message.answer(f"⚠️ Ошибка при создании платежа: {str(e)}")
+        await state.clear()
 
-async def handle_help(message: types.Message):
-    '''Помощь пользователю'''
-    text = (
-        "❓ Как пользоваться ботом:\n\n"
-        "🎁 Получить бесплатный ключ - выдает QR-код (номера 1-500)\n"
-        "🔐 Узнать про Тайную витрину - информация о закрытой распродаже\n"
-        "💎 Купить VIP-ключ - получить доступ к эксклюзивным товарам\n\n"
-        "По всем вопросам пишите в поддержку."
-    )
-    await message.answer(text)
-
-async def callback_handler(callback: types.CallbackQuery, bot_id: int):
+async def callback_handler(callback: types.CallbackQuery, bot_id: int, state: FSMContext):
     '''Обработчик inline кнопок'''
     if callback.data == "secret_shop":
         await handle_secret_shop(callback.message, bot_id)
     elif callback.data == "buy_vip":
-        await handle_buy_vip(callback.message, bot_id)
+        await handle_buy_vip(callback.message, bot_id, state)
+    elif callback.data == "start_payment_form":
+        await start_payment_form(callback, state)
     elif callback.data == "main_menu":
         await cmd_start(callback.message, bot_id)
+        await state.clear()
     await callback.answer()
 
 async def run_bot(bot_data: Dict):
@@ -314,8 +391,9 @@ async def run_bot(bot_data: Dict):
     bot_id = bot_data['id']
     
     @dp.message(Command("start"))
-    async def start_handler(message: types.Message):
+    async def start_handler(message: types.Message, state: FSMContext):
         await cmd_start(message, bot_id)
+        await state.clear()
     
     @dp.message(F.text == "🎁 Получить бесплатный ключ")
     async def free_key_handler(message: types.Message):
@@ -326,16 +404,28 @@ async def run_bot(bot_data: Dict):
         await handle_secret_shop(message, bot_id)
     
     @dp.message(F.text == "💎 Купить VIP-ключ")
-    async def buy_vip_handler(message: types.Message):
-        await handle_buy_vip(message, bot_id)
+    async def buy_vip_handler(message: types.Message, state: FSMContext):
+        await handle_buy_vip(message, bot_id, state)
     
     @dp.message(F.text == "❓ Помощь")
     async def help_handler(message: types.Message):
         await handle_help(message)
     
+    @dp.message(BotStates.waiting_for_last_name)
+    async def last_name_handler(message: types.Message, state: FSMContext):
+        await process_last_name(message, state)
+    
+    @dp.message(BotStates.waiting_for_first_name)
+    async def first_name_handler(message: types.Message, state: FSMContext):
+        await process_first_name(message, state)
+    
+    @dp.message(BotStates.waiting_for_phone)
+    async def phone_handler(message: types.Message, state: FSMContext):
+        await process_phone_and_create_payment(message, state)
+    
     @dp.callback_query()
-    async def callback_handler_wrapper(callback: types.CallbackQuery):
-        await callback_handler(callback, bot_id)
+    async def callback_handler_wrapper(callback: types.CallbackQuery, state: FSMContext):
+        await callback_handler(callback, bot_id, state)
     
     print(f"✅ Bot '{bot_data['name']}' (ID: {bot_id}) started")
     await dp.start_polling(bot, skip_updates=True)

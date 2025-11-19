@@ -54,6 +54,14 @@ interface BotSettingsDialogProps {
   setEditPrivacyConsentEnabled: (value: boolean) => void;
   editPrivacyConsentText: string;
   setEditPrivacyConsentText: (value: string) => void;
+  editVipPromoEnabled: boolean;
+  setEditVipPromoEnabled: (value: boolean) => void;
+  editVipPromoStartDate: string;
+  setEditVipPromoStartDate: (value: string) => void;
+  editVipPromoEndDate: string;
+  setEditVipPromoEndDate: (value: string) => void;
+  editVipPurchaseMessage: string;
+  setEditVipPurchaseMessage: (value: string) => void;
   onSave: () => void;
 }
 
@@ -82,6 +90,14 @@ const BotSettingsDialog = ({
   setEditPrivacyConsentEnabled,
   editPrivacyConsentText,
   setEditPrivacyConsentText,
+  editVipPromoEnabled,
+  setEditVipPromoEnabled,
+  editVipPromoStartDate,
+  setEditVipPromoStartDate,
+  editVipPromoEndDate,
+  setEditVipPromoEndDate,
+  editVipPurchaseMessage,
+  setEditVipPurchaseMessage,
   onSave,
 }: BotSettingsDialogProps) => {
   const [activeTab, setActiveTab] = useState('payment');
@@ -126,6 +142,14 @@ const BotSettingsDialog = ({
             setEditTbankTerminalKey={setEditTbankTerminalKey}
             editTbankPassword={editTbankPassword}
             setEditTbankPassword={setEditTbankPassword}
+            editVipPromoEnabled={editVipPromoEnabled}
+            setEditVipPromoEnabled={setEditVipPromoEnabled}
+            editVipPromoStartDate={editVipPromoStartDate}
+            setEditVipPromoStartDate={setEditVipPromoStartDate}
+            editVipPromoEndDate={editVipPromoEndDate}
+            setEditVipPromoEndDate={setEditVipPromoEndDate}
+            editVipPurchaseMessage={editVipPurchaseMessage}
+            setEditVipPurchaseMessage={setEditVipPurchaseMessage}
           />
           
           <TextsSettingsTab

@@ -183,6 +183,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         privacy_consent_enabled = body_data.get('privacy_consent_enabled')
         privacy_consent_text = body_data.get('privacy_consent_text')
         secret_shop_text = body_data.get('secret_shop_text')
+        vip_promo_enabled = body_data.get('vip_promo_enabled')
+        vip_promo_start_date = body_data.get('vip_promo_start_date')
+        vip_promo_end_date = body_data.get('vip_promo_end_date')
+        vip_purchase_message = body_data.get('vip_purchase_message')
         
         if not bot_id:
             conn.close()
@@ -247,6 +251,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if secret_shop_text is not None:
             secret_shop_text_escaped = secret_shop_text.replace("'", "''")
             update_parts.append(f"secret_shop_text = '{secret_shop_text_escaped}'")
+        
+        if vip_promo_enabled is not None:
+            update_parts.append(f"vip_promo_enabled = {vip_promo_enabled}")
+        
+        if vip_promo_start_date is not None:
+            if vip_promo_start_date:
+                update_parts.append(f"vip_promo_start_date = '{vip_promo_start_date}'")
+            else:
+                update_parts.append("vip_promo_start_date = NULL")
+        
+        if vip_promo_end_date is not None:
+            if vip_promo_end_date:
+                update_parts.append(f"vip_promo_end_date = '{vip_promo_end_date}'")
+            else:
+                update_parts.append("vip_promo_end_date = NULL")
+        
+        if vip_purchase_message is not None:
+            vip_purchase_message_escaped = vip_purchase_message.replace("'", "''")
+            update_parts.append(f"vip_purchase_message = '{vip_purchase_message_escaped}'")
         
         if not update_parts:
             conn.close()
