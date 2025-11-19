@@ -1,4 +1,7 @@
 {
+  "setup-webhook": "https://functions.poehali.dev/5de84ef3-0564-49a9-95a1-05f3de4ba313",
+  "telegram-webhook": "https://functions.poehali.dev/e8eb375e-9ff3-4b43-9b51-12ac8338c9fe",
+  "telegram-bot-engine": "https://functions.poehali.dev/eb2c54e4-0f90-4e8a-ab2c-d043b163229e",
   "bot-runner": "https://functions.poehali.dev/219980d4-f0af-4bfd-a046-421e59d66113",
   "moderate-bot": "https://functions.poehali.dev/6ead39ca-fa16-491f-8f5e-19af81c2ccac",
   "admin-login": "https://functions.poehali.dev/e120dd9f-d7a2-44c9-8bc8-bb0a1aabbcf2",

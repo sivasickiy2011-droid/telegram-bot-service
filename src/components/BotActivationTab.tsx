@@ -52,6 +52,24 @@ const BotActivationTab = ({ currentUser }: BotActivationTabProps) => {
   const handleActivation = async (botId: number, action: 'activate' | 'deactivate') => {
     try {
       setProcessing(botId);
+      
+      if (action === 'activate') {
+        const webhookResponse = await fetch('https://functions.poehali.dev/5de84ef3-0564-49a9-95a1-05f3de4ba313', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bot_id: botId,
+            action: 'setup',
+          }),
+        });
+
+        const webhookData = await webhookResponse.json();
+        
+        if (!webhookResponse.ok || !webhookData.telegram_result?.ok) {
+          throw new Error('Не удалось настроить webhook для бота');
+        }
+      }
+      
       const response = await fetch('https://functions.poehali.dev/219980d4-f0af-4bfd-a046-421e59d66113', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,8 +84,10 @@ const BotActivationTab = ({ currentUser }: BotActivationTabProps) => {
 
       if (response.ok) {
         toast({
-          title: action === 'activate' ? 'Бот активирован' : 'Бот деактивирован',
-          description: data.message,
+          title: action === 'activate' ? '🚀 Бот активирован!' : 'Бот деактивирован',
+          description: action === 'activate' 
+            ? 'Бот запущен и готов принимать сообщения в Telegram' 
+            : data.message,
         });
         loadApprovedBots();
       } else {

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Настройка Webhook для Telegram бота</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🤖 Настройка Telegram Webhook</h1>
+    
+    <p>Бот ID: <strong>11</strong> (Генератор QR + Vip)</p>
+    
+    <div>
+        <button onclick="setupWebhook()">✅ Настроить Webhook</button>
+        <button onclick="checkWebhook()">ℹ️ Проверить статус</button>
+        <button onclick="deleteWebhook()">❌ Удалить Webhook</button>
+    </div>
+    
+    <div id="result" class="result" style="display:none;"></div>
+    
+    <script>
+        const BOT_ID = 11;
+        const SETUP_URL = 'https://functions.poehali.dev/5de84ef3-0564-49a9-95a1-05f3de4ba313';
+        
+        async function setupWebhook() {
+            showResult('⏳ Настройка webhook...');
+            try {
+                const response = await fetch(SETUP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bot_id: BOT_ID,
+                        action: 'setup'
+                    })
+                });
+                
+                const data = await response.json();
+                showResult('✅ Результат настройки:\n\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ Ошибка: ' + error.message);
+            }
+        }
+        
+        async function checkWebhook() {
+            showResult('⏳ Проверка webhook...');
+            try {
+                const response = await fetch(SETUP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bot_id: BOT_ID,
+                        action: 'info'
+                    })
+                });
+                
+                const data = await response.json();
+                showResult('ℹ️ Информация о webhook:\n\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ Ошибка: ' + error.message);
+            }
+        }
+        
+        async function deleteWebhook() {
+            showResult('⏳ Удаление webhook...');
+            try {
+                const response = await fetch(SETUP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bot_id: BOT_ID,
+                        action: 'delete'
+                    })
+                });
+                
+                const data = await response.json();
+                showResult('✅ Webhook удален:\n\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ Ошибка: ' + error.message);
+            }
+        }
+        
+        function showResult(text) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = text;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
