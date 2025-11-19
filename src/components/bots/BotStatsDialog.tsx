@@ -8,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { exportToExcel, exportToCSV } from '@/lib/exportStats';
+import { useToast } from '@/hooks/use-toast';
 
 interface Bot {
   id: string;
@@ -39,6 +41,44 @@ const BotStatsDialog = ({
   botStats,
   loadingStats,
 }: BotStatsDialogProps) => {
+  const { toast } = useToast();
+
+  const handleExportExcel = () => {
+    if (!botStats) return;
+    
+    try {
+      exportToExcel(botStats);
+      toast({
+        title: 'Экспорт выполнен',
+        description: 'Статистика экспортирована в Excel'
+      });
+    } catch (error) {
+      toast({
+        title: 'Ошибка экспорта',
+        description: 'Не удалось экспортировать данные',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (!botStats) return;
+    
+    try {
+      exportToCSV(botStats);
+      toast({
+        title: 'Экспорт выполнен',
+        description: 'Статистика экспортирована в CSV'
+      });
+    } catch (error) {
+      toast({
+        title: 'Ошибка экспорта',
+        description: 'Не удалось экспортировать данные',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
@@ -137,7 +177,31 @@ const BotStatsDialog = ({
           </div>
         )}
         
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <div className="flex gap-2">
+            {botStats && (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleExportExcel}
+                  className="gap-2"
+                >
+                  <Icon name="FileSpreadsheet" size={16} />
+                  Excel
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleExportCSV}
+                  className="gap-2"
+                >
+                  <Icon name="FileText" size={16} />
+                  CSV
+                </Button>
+              </>
+            )}
+          </div>
           <Button onClick={() => onOpenChange(false)}>Закрыть</Button>
         </div>
       </DialogContent>
