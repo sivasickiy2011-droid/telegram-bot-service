@@ -116,41 +116,42 @@ const CreateBotDialog = ({
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <Label htmlFor="bot-name">Название бота</Label>
-            <Input 
-              id="bot-name" 
-              placeholder="Мой крутой бот" 
-              value={newBotName}
-              onChange={(e) => setNewBotName(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="bot-token">Telegram Bot Token</Label>
-            <Input 
-              id="bot-token" 
-              placeholder="123456:ABC-DEF..." 
-              type="password"
-              value={newBotToken}
-              onChange={(e) => setNewBotToken(e.target.value)}
-            />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="unique-number">Уникальный номер бота (6 цифр)</Label>
-            <Input 
-              id="unique-number" 
-              placeholder="123456" 
-              maxLength={6}
-              value={uniqueNumber}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '');
-                setUniqueNumber(value);
-              }}
-            />
-                  <p className="text-xs text-muted-foreground">
-                    Используется для идентификации бота в системе
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-name">Название бота</Label>
+                    <Input 
+                      id="bot-name" 
+                      placeholder="Мой крутой бот" 
+                      value={newBotName}
+                      onChange={(e) => setNewBotName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-token">Telegram Bot Token</Label>
+                    <Input 
+                      id="bot-token" 
+                      placeholder="123456:ABC-DEF..." 
+                      type="password"
+                      value={newBotToken}
+                      onChange={(e) => setNewBotToken(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="unique-number">Уникальный номер бота (6 цифр)</Label>
+                    <Input 
+                      id="unique-number" 
+                      placeholder="123456" 
+                      maxLength={6}
+                      value={uniqueNumber}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        setUniqueNumber(value);
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Используется для идентификации бота в системе
+                    </p>
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -165,56 +166,56 @@ const CreateBotDialog = ({
               <AccordionContent>
                 <div className="space-y-4 pt-2">
                   <div className="space-y-2">
-            <Label htmlFor="bot-template">Тип бота</Label>
-            <Select 
-              value={newBotTemplate} 
-              onValueChange={(value) => {
-                setNewBotTemplate(value);
-                if (value === 'keys' && !newBotLogic) {
-                  setNewBotLogic('Команда /start - приветствие и главное меню\nКоманда "Получить бесплатный ключ" - выдает бесплатный QR-ключ (номера 1-500)\nКоманда "Купить VIP-ключ" - запускает процесс оплаты через Telegram Payments\nПосле оплаты - выдается VIP-ключ с доступом к Тайной витрине\nКоманда "Мои ключи" - показывает все ключи пользователя\nИнтеграция с базой данных для хранения ключей и статусов\nАвтоматическая проверка и активация QR-кодов');
-                  setNewBotDescription('Бот для выдачи бесплатных и VIP ключей доступа к Тайной витрине с интеграцией QR-кодов и платежной системы');
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Выберите тип бота" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="keys">🔑 QR-ключи + VIP-доступ</SelectItem>
-                <SelectItem value="shop">🛍️ Интернет-магазин</SelectItem>
-                <SelectItem value="subscription">💎 Подписки и контент</SelectItem>
-                <SelectItem value="support">💬 Поддержка клиентов</SelectItem>
-                <SelectItem value="custom">⚙️ Кастомная логика</SelectItem>
-              </SelectContent>
-                  </Select>
-                </div>
+                    <Label htmlFor="bot-template">Тип бота</Label>
+                    <Select 
+                      value={newBotTemplate} 
+                      onValueChange={(value) => {
+                        setNewBotTemplate(value);
+                        if (value === 'keys' && !newBotLogic) {
+                          setNewBotLogic('Команда /start - приветствие и главное меню\nКоманда "Получить бесплатный ключ" - выдает бесплатный QR-ключ (номера 1-500)\nКоманда "Купить VIP-ключ" - запускает процесс оплаты через Telegram Payments\nПосле оплаты - выдается VIP-ключ с доступом к Тайной витрине\nКоманда "Мои ключи" - показывает все ключи пользователя\nИнтеграция с базой данных для хранения ключей и статусов\nАвтоматическая проверка и активация QR-кодов');
+                          setNewBotDescription('Бот для выдачи бесплатных и VIP ключей доступа к Тайной витрине с интеграцией QR-кодов и платежной системы');
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите тип бота" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="keys">🔑 QR-ключи + VIP-доступ</SelectItem>
+                        <SelectItem value="shop">🛍️ Интернет-магазин</SelectItem>
+                        <SelectItem value="subscription">💎 Подписки и контент</SelectItem>
+                        <SelectItem value="support">💬 Поддержка клиентов</SelectItem>
+                        <SelectItem value="custom">⚙️ Кастомная логика</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-2">
-            <Label htmlFor="bot-description">Краткое описание (что делает бот)</Label>
-            <Textarea
-              id="bot-description"
-              placeholder="Например: Бот выдает бесплатные и VIP ключи доступа, управляет подписками пользователей"
-              value={newBotDescription}
-              onChange={(e) => setNewBotDescription(e.target.value)}
-              rows={2}
-            />
-          </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-description">Краткое описание (что делает бот)</Label>
+                    <Textarea
+                      id="bot-description"
+                      placeholder="Например: Бот выдает бесплатные и VIP ключи доступа, управляет подписками пользователей"
+                      value={newBotDescription}
+                      onChange={(e) => setNewBotDescription(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="bot-logic">Подробная логика работы</Label>
-            <Textarea
-              id="bot-logic"
-              placeholder="Опишите детально как работает бот: команды, кнопки, сценарии использования, интеграции с платежами и т.д."
-              value={newBotLogic}
-              onChange={(e) => setNewBotLogic(e.target.value)}
-              rows={6}
-            />
-                  <p className="text-xs text-muted-foreground">
-                    Администратор будет проверять эту информацию при модерации
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-logic">Подробная логика работы</Label>
+                    <Textarea
+                      id="bot-logic"
+                      placeholder="Опишите детально как работает бот: команды, кнопки, сценарии использования, интеграции с платежами и т.д."
+                      value={newBotLogic}
+                      onChange={(e) => setNewBotLogic(e.target.value)}
+                      rows={6}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Администратор будет проверять эту информацию при модерации
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </AccordionContent>
+              </AccordionContent>
           </AccordionItem>
           
           {newBotTemplate === 'keys' && (
@@ -254,10 +255,10 @@ const CreateBotDialog = ({
                         onChange={(e) => setQrPaidCount(parseInt(e.target.value) || 0)}
                         className="h-9"
                       />
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
+                  <div className="space-y-2">
                     <Label className="text-xs">Ротация QR-кодов</Label>
                     <div className="flex gap-2">
                       <Input
@@ -281,12 +282,12 @@ const CreateBotDialog = ({
                         </SelectContent>
                       </Select>
                     </div>
-                  <p className="text-xs text-muted-foreground">
-                    Как часто QR-коды будут обновляться (0 = никогда)
-                  </p>
-                </div>
+                    <p className="text-xs text-muted-foreground">
+                      Как часто QR-коды будут обновляться (0 = никогда)
+                    </p>
+                  </div>
 
-                <div className="space-y-3">
+                  <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="payment-enabled"
@@ -301,8 +302,8 @@ const CreateBotDialog = ({
                       </Label>
                     </div>
 
-                  {paymentEnabled && (
-                    <div className="space-y-2 pl-6">
+                    {paymentEnabled && (
+                      <div className="space-y-2 pl-6">
                         <Label htmlFor="payment-url" className="text-xs">
                           Ссылка для оплаты
                         </Label>
@@ -314,13 +315,13 @@ const CreateBotDialog = ({
                           onChange={(e) => setPaymentUrl(e.target.value)}
                           className="h-9"
                         />
-                      <p className="text-xs text-muted-foreground">
-                        Эта ссылка откроется при нажатии кнопки "Купить VIP-ключ"
-                      </p>
-                    </div>
-                  )}
+                        <p className="text-xs text-muted-foreground">
+                          Эта ссылка откроется при нажатии кнопки "Купить VIP-ключ"
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
             </AccordionContent>
           </AccordionItem>
           )}
