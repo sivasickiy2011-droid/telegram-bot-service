@@ -1,4 +1,5 @@
 {
+  "bot-runner": "https://functions.poehali.dev/219980d4-f0af-4bfd-a046-421e59d66113",
   "moderate-bot": "https://functions.poehali.dev/6ead39ca-fa16-491f-8f5e-19af81c2ccac",
   "admin-login": "https://functions.poehali.dev/e120dd9f-d7a2-44c9-8bc8-bb0a1aabbcf2",
   "auth": "https://functions.poehali.dev/a01ea47e-7e59-4f72-9278-9601581b7b0e",

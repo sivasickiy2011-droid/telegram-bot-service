@@ -1,0 +1,21 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "Get approved bots",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "bots": []
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

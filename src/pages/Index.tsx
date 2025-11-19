@@ -9,6 +9,7 @@ import DashboardTab from '@/components/DashboardTab';
 import BotsTab from '@/components/BotsTab';
 import AdminTab from '@/components/AdminTab';
 import ModerationTab from '@/components/ModerationTab';
+import BotActivationTab from '@/components/BotActivationTab';
 
 interface Bot {
   id: string;
@@ -310,7 +311,7 @@ const Index = () => {
       <div className="pt-24 pb-12">
         <div className="container mx-auto px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-            <TabsList className={`grid w-full max-w-3xl mx-auto h-12 ${currentUser?.role === 'admin' ? 'grid-cols-4' : 'grid-cols-2'}`}>
+            <TabsList className={`grid w-full max-w-4xl mx-auto h-12 ${currentUser?.role === 'admin' ? 'grid-cols-5' : 'grid-cols-2'}`}>
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <Icon name="LayoutDashboard" size={16} />
                 Дашборд
@@ -324,6 +325,10 @@ const Index = () => {
                   <TabsTrigger value="moderation" className="flex items-center gap-2">
                     <Icon name="AlertCircle" size={16} />
                     Модерация
+                  </TabsTrigger>
+                  <TabsTrigger value="activation" className="flex items-center gap-2">
+                    <Icon name="Play" size={16} />
+                    Активация
                   </TabsTrigger>
                   <TabsTrigger value="admin" className="flex items-center gap-2">
                     <Icon name="Shield" size={16} />
@@ -367,6 +372,11 @@ const Index = () => {
                   <ModerationTab 
                     currentUser={currentUser}
                     onModerate={() => loadUserBots(currentUser.id)}
+                  />
+                </TabsContent>
+                <TabsContent value="activation">
+                  <BotActivationTab 
+                    currentUser={currentUser}
                   />
                 </TabsContent>
                 <TabsContent value="admin">
