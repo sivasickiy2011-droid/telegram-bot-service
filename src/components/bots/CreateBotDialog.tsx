@@ -34,6 +34,9 @@ interface CreateBotDialogProps {
   qrRotationUnit: string;
   paymentEnabled: boolean;
   paymentUrl: string;
+  offerImageUrl: string;
+  privacyConsentEnabled: boolean;
+  privacyConsentText: string;
   isCreatingBot: boolean;
   setNewBotName: (value: string) => void;
   setNewBotToken: (value: string) => void;
@@ -47,6 +50,9 @@ interface CreateBotDialogProps {
   setQrRotationUnit: (value: string) => void;
   setPaymentEnabled: (value: boolean) => void;
   setPaymentUrl: (value: string) => void;
+  setOfferImageUrl: (value: string) => void;
+  setPrivacyConsentEnabled: (value: boolean) => void;
+  setPrivacyConsentText: (value: string) => void;
   handleCreateBot: () => void;
 }
 
@@ -64,6 +70,9 @@ const CreateBotDialog = ({
   qrRotationUnit,
   paymentEnabled,
   paymentUrl,
+  offerImageUrl,
+  privacyConsentEnabled,
+  privacyConsentText,
   isCreatingBot,
   setNewBotName,
   setNewBotToken,
@@ -77,6 +86,9 @@ const CreateBotDialog = ({
   setQrRotationUnit,
   setPaymentEnabled,
   setPaymentUrl,
+  setOfferImageUrl,
+  setPrivacyConsentEnabled,
+  setPrivacyConsentText,
   handleCreateBot,
 }: CreateBotDialogProps) => {
   return (
@@ -325,6 +337,65 @@ const CreateBotDialog = ({
             </AccordionContent>
           </AccordionItem>
           )}
+          
+          <AccordionItem value="additional-settings" className="border rounded-lg px-4">
+            <AccordionTrigger className="text-sm font-semibold hover:no-underline">
+              <div className="flex items-center gap-2">
+                <Icon name="Image" size={16} />
+                Дополнительные настройки
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="offer-image" className="text-xs">Изображение оффера (ссылка)</Label>
+                  <Input
+                    id="offer-image"
+                    type="url"
+                    placeholder="https://example.com/image.jpg"
+                    value={offerImageUrl}
+                    onChange={(e) => setOfferImageUrl(e.target.value)}
+                    className="h-9"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Картинка будет показана пользователю перед кнопками меню
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="privacy-consent"
+                      checked={privacyConsentEnabled}
+                      onCheckedChange={(checked) => setPrivacyConsentEnabled(checked as boolean)}
+                    />
+                    <Label htmlFor="privacy-consent" className="text-xs font-medium cursor-pointer">
+                      Требовать согласие на обработку персональных данных
+                    </Label>
+                  </div>
+                  
+                  {privacyConsentEnabled && (
+                    <div className="space-y-2 pl-6">
+                      <Label htmlFor="privacy-text" className="text-xs">
+                        Текст согласия
+                      </Label>
+                      <Textarea
+                        id="privacy-text"
+                        placeholder="Я согласен на обработку персональных данных"
+                        value={privacyConsentText}
+                        onChange={(e) => setPrivacyConsentText(e.target.value)}
+                        rows={2}
+                        className="text-xs"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Пользователь должен согласиться перед использованием бота
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
           
         <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 mt-4">

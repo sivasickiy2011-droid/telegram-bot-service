@@ -43,6 +43,9 @@ const Index = () => {
   const [qrRotationUnit, setQrRotationUnit] = useState('never');
   const [paymentEnabled, setPaymentEnabled] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState('');
+  const [offerImageUrl, setOfferImageUrl] = useState('');
+  const [privacyConsentEnabled, setPrivacyConsentEnabled] = useState(false);
+  const [privacyConsentText, setPrivacyConsentText] = useState('Я согласен на обработку персональных данных');
   const [isCreatingBot, setIsCreatingBot] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isTelegramApp, setIsTelegramApp] = useState(false);
@@ -117,6 +120,9 @@ const Index = () => {
         tbank_terminal_key: bot.tbank_terminal_key,
         tbank_password: bot.tbank_password,
         vip_price: bot.vip_price,
+        offer_image_url: bot.offer_image_url,
+        privacy_consent_enabled: bot.privacy_consent_enabled,
+        privacy_consent_text: bot.privacy_consent_text,
       })));
     } catch (error) {
       console.error('Failed to load bots:', error);
@@ -235,6 +241,9 @@ const Index = () => {
         qr_rotation_unit: qrRotationUnit,
         payment_enabled: paymentEnabled,
         payment_url: paymentUrl,
+        offer_image_url: offerImageUrl,
+        privacy_consent_enabled: privacyConsentEnabled,
+        privacy_consent_text: privacyConsentText,
       });
 
       toast({
@@ -253,6 +262,9 @@ const Index = () => {
       setQrRotationUnit('never');
       setPaymentEnabled(false);
       setPaymentUrl('');
+      setOfferImageUrl('');
+      setPrivacyConsentEnabled(false);
+      setPrivacyConsentText('Я согласен на обработку персональных данных');
       setNewBotTemplate('keys');
       loadUserBots(currentUser.id);
     } catch (error: any) {
@@ -439,6 +451,9 @@ const Index = () => {
                 qrRotationUnit={qrRotationUnit}
                 paymentEnabled={paymentEnabled}
                 paymentUrl={paymentUrl}
+                offerImageUrl={offerImageUrl}
+                privacyConsentEnabled={privacyConsentEnabled}
+                privacyConsentText={privacyConsentText}
                 isCreatingBot={isCreatingBot}
                 setNewBotName={setNewBotName}
                 setNewBotToken={setNewBotToken}
@@ -452,6 +467,9 @@ const Index = () => {
                 setQrRotationUnit={setQrRotationUnit}
                 setPaymentEnabled={setPaymentEnabled}
                 setPaymentUrl={setPaymentUrl}
+                setOfferImageUrl={setOfferImageUrl}
+                setPrivacyConsentEnabled={setPrivacyConsentEnabled}
+                setPrivacyConsentText={setPrivacyConsentText}
                 handleCreateBot={handleCreateBot}
                 handleDeleteBot={handleDeleteBot}
                 getStatusColor={getStatusColor}

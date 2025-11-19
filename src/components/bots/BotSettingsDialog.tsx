@@ -49,6 +49,12 @@ interface BotSettingsDialogProps {
   setEditTbankPassword: (value: string) => void;
   editVipPrice: number;
   setEditVipPrice: (value: number) => void;
+  editOfferImageUrl: string;
+  setEditOfferImageUrl: (value: string) => void;
+  editPrivacyConsentEnabled: boolean;
+  setEditPrivacyConsentEnabled: (value: boolean) => void;
+  editPrivacyConsentText: string;
+  setEditPrivacyConsentText: (value: string) => void;
   onSave: () => void;
 }
 
@@ -71,6 +77,12 @@ const BotSettingsDialog = ({
   setEditTbankPassword,
   editVipPrice,
   setEditVipPrice,
+  editOfferImageUrl,
+  setEditOfferImageUrl,
+  editPrivacyConsentEnabled,
+  setEditPrivacyConsentEnabled,
+  editPrivacyConsentText,
+  setEditPrivacyConsentText,
   onSave,
 }: BotSettingsDialogProps) => {
   const [activeTab, setActiveTab] = useState('payment');
@@ -138,7 +150,7 @@ const BotSettingsDialog = ({
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="payment">
               <Icon name="CreditCard" size={14} className="mr-2" />
               Оплата
@@ -146,6 +158,10 @@ const BotSettingsDialog = ({
             <TabsTrigger value="texts">
               <Icon name="MessageSquare" size={14} className="mr-2" />
               Тексты
+            </TabsTrigger>
+            <TabsTrigger value="additional">
+              <Icon name="Image" size={14} className="mr-2" />
+              Доп. настройки
             </TabsTrigger>
             <TabsTrigger value="instructions">
               <Icon name="BookOpen" size={14} className="mr-2" />
@@ -333,6 +349,55 @@ const BotSettingsDialog = ({
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="additional" className="space-y-4 mt-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-offer-image" className="text-sm font-semibold">Изображение оффера</Label>
+                <Input
+                  id="edit-offer-image"
+                  type="url"
+                  placeholder="https://example.com/image.jpg"
+                  value={editOfferImageUrl}
+                  onChange={(e) => setEditOfferImageUrl(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Картинка будет показана пользователю перед кнопками главного меню
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="edit-privacy-consent"
+                    checked={editPrivacyConsentEnabled}
+                    onCheckedChange={(checked) => setEditPrivacyConsentEnabled(checked as boolean)}
+                  />
+                  <Label htmlFor="edit-privacy-consent" className="text-sm font-medium cursor-pointer">
+                    Требовать согласие на обработку персональных данных
+                  </Label>
+                </div>
+                
+                {editPrivacyConsentEnabled && (
+                  <div className="space-y-2 pl-6">
+                    <Label htmlFor="edit-privacy-text" className="text-xs">
+                      Текст согласия
+                    </Label>
+                    <Textarea
+                      id="edit-privacy-text"
+                      placeholder="Я согласен на обработку персональных данных"
+                      value={editPrivacyConsentText}
+                      onChange={(e) => setEditPrivacyConsentText(e.target.value)}
+                      rows={2}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Пользователь должен нажать кнопку согласия перед использованием бота
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>

@@ -91,6 +91,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         qr_rotation_unit = body_data.get('qr_rotation_unit', 'never')
         payment_enabled = body_data.get('payment_enabled', False)
         payment_url = body_data.get('payment_url', '')
+        offer_image_url = body_data.get('offer_image_url', '')
+        privacy_consent_enabled = body_data.get('privacy_consent_enabled', False)
+        privacy_consent_text = body_data.get('privacy_consent_text', 'Я согласен на обработку персональных данных')
         
         if not user_id or not name or not telegram_token or not description or not logic or not unique_number:
             conn.close()
@@ -132,16 +135,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         unique_number_escaped = unique_number.replace("'", "''")
         qr_rotation_unit_escaped = qr_rotation_unit.replace("'", "''")
         payment_url_escaped = payment_url.replace("'", "''")
+        offer_image_url_escaped = offer_image_url.replace("'", "''")
+        privacy_consent_text_escaped = privacy_consent_text.replace("'", "''")
         
         query = f'''INSERT INTO t_p5255237_telegram_bot_service.bots 
                (user_id, name, telegram_token, template, bot_description, bot_logic, unique_number,
                 qr_free_count, qr_paid_count, qr_rotation_value, qr_rotation_unit, 
-                payment_enabled, payment_url, status, moderation_status)
+                payment_enabled, payment_url, offer_image_url, privacy_consent_enabled, privacy_consent_text,
+                status, moderation_status)
                VALUES ({user_id}, '{name_escaped}', '{token_escaped}', '{template_escaped}', 
                        '{description_escaped}', '{logic_escaped}', '{unique_number_escaped}',
                        {qr_free_count}, {qr_paid_count}, 
                        {qr_rotation_value}, '{qr_rotation_unit_escaped}', {payment_enabled}, 
-                       '{payment_url_escaped}', 'inactive', 'pending') 
+                       '{payment_url_escaped}', '{offer_image_url_escaped}', {privacy_consent_enabled}, 
+                       '{privacy_consent_text_escaped}', 'inactive', 'pending') 
                RETURNING *'''
         cursor.execute(query)
         bot = cursor.fetchone()
@@ -170,6 +177,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         tbank_terminal_key = body_data.get('tbank_terminal_key')
         tbank_password = body_data.get('tbank_password')
         vip_price = body_data.get('vip_price')
+        offer_image_url = body_data.get('offer_image_url')
+        privacy_consent_enabled = body_data.get('privacy_consent_enabled')
+        privacy_consent_text = body_data.get('privacy_consent_text')
         
         if not bot_id:
             conn.close()
@@ -215,6 +225,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         if vip_price is not None:
             update_parts.append(f"vip_price = {vip_price}")
+        
+        if offer_image_url is not None:
+            offer_image_url_escaped = offer_image_url.replace("'", "''")
+            update_parts.append(f"offer_image_url = '{offer_image_url_escaped}'")
+        
+        if privacy_consent_enabled is not None:
+            update_parts.append(f"privacy_consent_enabled = {privacy_consent_enabled}")
+        
+        if privacy_consent_text is not None:
+            privacy_consent_text_escaped = privacy_consent_text.replace("'", "''")
+            update_parts.append(f"privacy_consent_text = '{privacy_consent_text_escaped}'")
         
         if not update_parts:
             conn.close()

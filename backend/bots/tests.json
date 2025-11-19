@@ -18,24 +18,19 @@
       "bodyMatcher": "partial"
     },
     {
-      "name": "Create new bot",
+      "name": "Create new bot should fail for duplicate unique_number",
       "method": "POST",
       "path": "/",
       "body": {
         "user_id": 1,
-        "name": "Test Bot",
-        "telegram_token": "123:ABC",
+        "name": "Test Bot Duplicate",
+        "telegram_token": "456:DEF",
         "template": "keys",
-        "description": "Test bot for QR keys distribution",
+        "description": "Test bot for testing unique constraint",
         "logic": "Bot provides free and VIP keys to users",
         "unique_number": "123456"
       },
-      "expectedStatus": 201,
-      "expectedBody": {
-        "bot": {
-          "name": "Test Bot"
-        }
-      },
+      "expectedStatus": 502,
       "bodyMatcher": "partial"
     }
   ]

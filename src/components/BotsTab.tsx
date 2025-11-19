@@ -38,6 +38,9 @@ interface BotsTabProps {
   qrRotationUnit: string;
   paymentEnabled: boolean;
   paymentUrl: string;
+  offerImageUrl: string;
+  privacyConsentEnabled: boolean;
+  privacyConsentText: string;
   isCreatingBot: boolean;
   setNewBotName: (value: string) => void;
   setNewBotToken: (value: string) => void;
@@ -51,6 +54,9 @@ interface BotsTabProps {
   setQrRotationUnit: (value: string) => void;
   setPaymentEnabled: (value: boolean) => void;
   setPaymentUrl: (value: string) => void;
+  setOfferImageUrl: (value: string) => void;
+  setPrivacyConsentEnabled: (value: boolean) => void;
+  setPrivacyConsentText: (value: string) => void;
   handleCreateBot: () => void;
   handleDeleteBot: (botId: string) => void;
   getStatusColor: (status: string) => string;
@@ -72,6 +78,9 @@ const BotsTab = ({
   qrRotationUnit,
   paymentEnabled,
   paymentUrl,
+  offerImageUrl,
+  privacyConsentEnabled,
+  privacyConsentText,
   isCreatingBot,
   setNewBotName,
   setNewBotToken,
@@ -85,6 +94,9 @@ const BotsTab = ({
   setQrRotationUnit,
   setPaymentEnabled,
   setPaymentUrl,
+  setOfferImageUrl,
+  setPrivacyConsentEnabled,
+  setPrivacyConsentText,
   handleCreateBot,
   handleDeleteBot,
   getStatusColor,
@@ -109,6 +121,9 @@ const BotsTab = ({
   const [editTbankTerminalKey, setEditTbankTerminalKey] = useState('');
   const [editTbankPassword, setEditTbankPassword] = useState('');
   const [editVipPrice, setEditVipPrice] = useState(500);
+  const [editOfferImageUrl, setEditOfferImageUrl] = useState('');
+  const [editPrivacyConsentEnabled, setEditPrivacyConsentEnabled] = useState(false);
+  const [editPrivacyConsentText, setEditPrivacyConsentText] = useState('');
   
   const openSettings = (bot: any) => {
     setSelectedBot(bot);
@@ -119,6 +134,9 @@ const BotsTab = ({
     setEditTbankTerminalKey(bot.tbank_terminal_key || '');
     setEditTbankPassword(bot.tbank_password || '');
     setEditVipPrice(bot.vip_price || 500);
+    setEditOfferImageUrl(bot.offer_image_url || '');
+    setEditPrivacyConsentEnabled(bot.privacy_consent_enabled || false);
+    setEditPrivacyConsentText(bot.privacy_consent_text || 'Я согласен на обработку персональных данных');
     setSettingsOpen(true);
   };
   
@@ -177,6 +195,9 @@ const BotsTab = ({
       if (editTbankTerminalKey) bodyData.tbank_terminal_key = editTbankTerminalKey;
       if (editTbankPassword) bodyData.tbank_password = editTbankPassword;
       if (editVipPrice) bodyData.vip_price = editVipPrice;
+      if (editOfferImageUrl !== undefined) bodyData.offer_image_url = editOfferImageUrl;
+      bodyData.privacy_consent_enabled = editPrivacyConsentEnabled;
+      if (editPrivacyConsentText) bodyData.privacy_consent_text = editPrivacyConsentText;
       
       console.log('Saving bot settings:', bodyData);
       
@@ -262,6 +283,9 @@ const BotsTab = ({
           qrRotationUnit={qrRotationUnit}
           paymentEnabled={paymentEnabled}
           paymentUrl={paymentUrl}
+          offerImageUrl={offerImageUrl}
+          privacyConsentEnabled={privacyConsentEnabled}
+          privacyConsentText={privacyConsentText}
           isCreatingBot={isCreatingBot}
           setNewBotName={setNewBotName}
           setNewBotToken={setNewBotToken}
@@ -275,6 +299,9 @@ const BotsTab = ({
           setQrRotationUnit={setQrRotationUnit}
           setPaymentEnabled={setPaymentEnabled}
           setPaymentUrl={setPaymentUrl}
+          setOfferImageUrl={setOfferImageUrl}
+          setPrivacyConsentEnabled={setPrivacyConsentEnabled}
+          setPrivacyConsentText={setPrivacyConsentText}
           handleCreateBot={handleCreateBot}
         />
       </div>
@@ -313,6 +340,12 @@ const BotsTab = ({
         setEditTbankPassword={setEditTbankPassword}
         editVipPrice={editVipPrice}
         setEditVipPrice={setEditVipPrice}
+        editOfferImageUrl={editOfferImageUrl}
+        setEditOfferImageUrl={setEditOfferImageUrl}
+        editPrivacyConsentEnabled={editPrivacyConsentEnabled}
+        setEditPrivacyConsentEnabled={setEditPrivacyConsentEnabled}
+        editPrivacyConsentText={editPrivacyConsentText}
+        setEditPrivacyConsentText={setEditPrivacyConsentText}
         onSave={saveSettings}
       />
       
