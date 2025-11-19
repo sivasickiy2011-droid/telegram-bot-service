@@ -33,8 +33,7 @@ const PaymentTest = () => {
     setResult(null);
 
     try {
-      const currentUrl = window.location.origin;
-      const response = await fetch('https://functions.poehali.dev/99bbc805-8eab-41cb-89c3-b0dd02989907', {
+      const response = await fetch('https://functions.poehali.dev/d3348932-2960-4d59-ab09-7708e4dac9b1', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -43,11 +42,6 @@ const PaymentTest = () => {
           terminal_key: terminalKey,
           password: password,
           amount: amount * 100,
-          order_id: 'test_' + Date.now(),
-          description: 'Тестовый платёж',
-          payment_method: paymentMethod,
-          success_url: `${currentUrl}/payment-test?success=true`,
-          fail_url: `${currentUrl}/payment-test?success=false`,
         }),
       });
 
