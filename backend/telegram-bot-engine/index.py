@@ -260,6 +260,7 @@ async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext,
     '''Обработка покупки VIP-ключа - показывает информацию и запускает форму'''
     
     telegram_user_id = message.from_user.id
+    user_id = register_telegram_user(bot_id, message.from_user)
     
     # Проверяем есть ли у пользователя платёж со статусом NEW или в процессе
     conn = get_db_connection()
@@ -278,7 +279,7 @@ async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext,
         
         if status == 'CONFIRMED':
             # Платёж уже подтверждён, выдаём ключ если ещё не выдан
-            qr_key = get_vip_qr_key(bot_id, telegram_user_id)
+            qr_key = get_vip_qr_key(bot_id, user_id)
             
             if qr_key:
                 qr_image = generate_qr_image(qr_key['code_number'])
@@ -316,7 +317,7 @@ async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext,
                 
                 if result.get('confirmed'):
                     # Платёж подтверждён! Выдаём VIP-ключ
-                    qr_key = get_vip_qr_key(bot_id, telegram_user_id)
+                    qr_key = get_vip_qr_key(bot_id, user_id)
                     
                     if qr_key:
                         qr_image = generate_qr_image(qr_key['code_number'])
@@ -497,8 +498,9 @@ async def process_phone_and_create_payment(message: types.Message, state: FSMCon
                 await message.answer("⏳ Статус: на проверке...")
                 
                 # Запускаем проверку статуса платежа
+                user_id = register_telegram_user(bot_id, message.from_user)
                 asyncio.create_task(check_payment_status_loop(
-                    bot, message.chat.id, order_id, bot_id, telegram_user_id
+                    bot, message.chat.id, order_id, bot_id, telegram_user_id, user_id
                 ))
                 
                 await state.clear()
@@ -511,7 +513,7 @@ async def process_phone_and_create_payment(message: types.Message, state: FSMCon
         await message.answer(f"⚠️ Ошибка при создании платежа: {str(e)}")
         await state.clear()
 
-async def check_payment_status_loop(bot: Bot, chat_id: int, order_id: str, bot_id: int, telegram_user_id: int):
+async def check_payment_status_loop(bot: Bot, chat_id: int, order_id: str, bot_id: int, telegram_user_id: int, user_id: int):
     '''Проверка статуса платежа с несколькими попытками: 5 сек, 10 сек, 60 сек'''
     delays = [5, 10, 60]  # Задержки между проверками
     
@@ -534,7 +536,7 @@ async def check_payment_status_loop(bot: Bot, chat_id: int, order_id: str, bot_i
                 
                 if result.get('confirmed'):
                     # Платёж подтверждён! Выдаём VIP-ключ
-                    qr_key = get_vip_qr_key(bot_id, telegram_user_id)
+                    qr_key = get_vip_qr_key(bot_id, user_id)
                     
                     if qr_key:
                         qr_image = generate_qr_image(qr_key['code_number'])
