@@ -233,7 +233,7 @@ def send_telegram_photo(token: str, chat_id: int, photo_base64: str, caption: st
     return response.json()
 
 def create_main_menu_keyboard(bot_id: int = None, telegram_user_id: int = None) -> Dict:
-    '''Создает главное меню с кнопками (с дополнительной кнопкой для администратора)'''
+    '''Создает главное меню с кнопками (с дополнительными кнопками для администратора)'''
     buttons = [
         [{'text': '🎁 Получить бесплатный ключ'}],
         [{'text': '🔐 Узнать про Тайную витрину'}],
@@ -242,6 +242,7 @@ def create_main_menu_keyboard(bot_id: int = None, telegram_user_id: int = None) 
     
     if bot_id and telegram_user_id and is_user_admin(bot_id, telegram_user_id):
         buttons.append([{'text': '👑 Получить бесплатный VIP-ключ (Админ)'}])
+        buttons.append([{'text': '📊 Статистика'}])
     
     buttons.append([{'text': '❓ Помощь'}])
     
@@ -441,6 +442,114 @@ def handle_admin_free_vip(bot_data: Dict, message: Dict):
         conn.close()
         text = "😔 VIP-ключи закончились."
         send_telegram_message(bot_data['telegram_token'], chat_id, text)
+
+def handle_stats(bot_data: Dict, chat_id: int, telegram_user_id: int):
+    '''Показать статистику по ключам (только для администратора)'''
+    if not is_user_admin(bot_data['id'], telegram_user_id):
+        text = "⚠️ Эта команда доступна только администратору бота."
+        send_telegram_message(bot_data['telegram_token'], chat_id, text)
+        return
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Статистика по бесплатным ключам
+        free_total_query = f'''SELECT COUNT(*) as total FROM t_p5255237_telegram_bot_service.qr_codes 
+                              WHERE bot_id = {bot_data['id']} AND code_type = 'free' '''
+        cursor.execute(free_total_query)
+        free_total = cursor.fetchone()['total']
+        
+        free_used_query = f'''SELECT COUNT(*) as used FROM t_p5255237_telegram_bot_service.qr_codes 
+                             WHERE bot_id = {bot_data['id']} AND code_type = 'free' AND is_used = true'''
+        cursor.execute(free_used_query)
+        free_used = cursor.fetchone()['used']
+        
+        free_available = free_total - free_used
+        
+        # Статистика по VIP ключам
+        vip_total_query = f'''SELECT COUNT(*) as total FROM t_p5255237_telegram_bot_service.qr_codes 
+                             WHERE bot_id = {bot_data['id']} AND code_type = 'vip' '''
+        cursor.execute(vip_total_query)
+        vip_total = cursor.fetchone()['total']
+        
+        vip_used_query = f'''SELECT COUNT(*) as used FROM t_p5255237_telegram_bot_service.qr_codes 
+                            WHERE bot_id = {bot_data['id']} AND code_type = 'vip' AND is_used = true'''
+        cursor.execute(vip_used_query)
+        vip_used = cursor.fetchone()['used']
+        
+        vip_available = vip_total - vip_used
+        
+        # Статистика по пользователям
+        users_total_query = f'''SELECT COUNT(*) as total FROM t_p5255237_telegram_bot_service.bot_users 
+                               WHERE bot_id = {bot_data['id']}'''
+        cursor.execute(users_total_query)
+        users_total = cursor.fetchone()['total']
+        
+        users_with_free_query = f'''SELECT COUNT(*) as count FROM t_p5255237_telegram_bot_service.bot_users 
+                                   WHERE bot_id = {bot_data['id']} AND received_free_qr = true'''
+        cursor.execute(users_with_free_query)
+        users_with_free = cursor.fetchone()['count']
+        
+        users_with_vip_query = f'''SELECT COUNT(*) as count FROM t_p5255237_telegram_bot_service.bot_users 
+                                  WHERE bot_id = {bot_data['id']} AND received_vip_qr = true'''
+        cursor.execute(users_with_vip_query)
+        users_with_vip = cursor.fetchone()['count']
+        
+        # Статистика по платежам
+        payments_total_query = f'''SELECT COUNT(*) as total, COALESCE(SUM(amount), 0) as sum 
+                                  FROM t_p5255237_telegram_bot_service.payments 
+                                  WHERE bot_id = {bot_data['id']}'''
+        cursor.execute(payments_total_query)
+        payments_data = cursor.fetchone()
+        payments_total = payments_data['total']
+        payments_sum = payments_data['sum']
+        
+        payments_confirmed_query = f'''SELECT COUNT(*) as confirmed, COALESCE(SUM(amount), 0) as sum 
+                                      FROM t_p5255237_telegram_bot_service.payments 
+                                      WHERE bot_id = {bot_data['id']} AND status = 'CONFIRMED' '''
+        cursor.execute(payments_confirmed_query)
+        payments_confirmed_data = cursor.fetchone()
+        payments_confirmed = payments_confirmed_data['confirmed']
+        payments_confirmed_sum = payments_confirmed_data['sum']
+        
+        # Платежи за сегодня
+        payments_today_query = f'''SELECT COUNT(*) as today, COALESCE(SUM(amount), 0) as sum 
+                                  FROM t_p5255237_telegram_bot_service.payments 
+                                  WHERE bot_id = {bot_data['id']} AND created_at >= CURRENT_DATE'''
+        cursor.execute(payments_today_query)
+        payments_today_data = cursor.fetchone()
+        payments_today = payments_today_data['today']
+        payments_today_sum = payments_today_data['sum']
+        
+        cursor.close()
+        conn.close()
+        
+        # Формируем сообщение
+        text = (
+            f"📊 <b>Статистика бота</b>\n\n"
+            f"<b>🎁 Бесплатные ключи:</b>\n"
+            f"├ Всего: {free_total}\n"
+            f"├ Выдано: {free_used}\n"
+            f"└ Осталось: {free_available}\n\n"
+            f"<b>💎 VIP-ключи:</b>\n"
+            f"├ Всего: {vip_total}\n"
+            f"├ Выдано: {vip_used}\n"
+            f"└ Осталось: {vip_available}\n\n"
+            f"<b>👥 Пользователи:</b>\n"
+            f"├ Всего: {users_total}\n"
+            f"├ Получили бесплатный ключ: {users_with_free}\n"
+            f"└ Получили VIP-ключ: {users_with_vip}\n\n"
+            f"<b>💳 Платежи:</b>\n"
+            f"├ Всего попыток: {payments_total} ({payments_sum} ₽)\n"
+            f"├ Подтверждено: {payments_confirmed} ({payments_confirmed_sum} ₽)\n"
+            f"└ За сегодня: {payments_today} ({payments_today_sum} ₽)\n"
+        )
+        
+        send_telegram_message(bot_data['telegram_token'], chat_id, text)
+        
+    except Exception as e:
+        send_telegram_message(bot_data['telegram_token'], chat_id, f"⚠️ Ошибка при получении статистики: {str(e)}")
 
 def handle_check_payment(bot_data: Dict, chat_id: int, telegram_user_id: int):
     '''Проверка статуса всех платежей пользователя за сегодня'''
@@ -776,6 +885,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 # Обычная обработка команд
                 if text == '/start':
                     handle_start(bot_data, message)
+                elif text == '/stats':
+                    handle_stats(bot_data, chat_id, telegram_user_id)
                 elif text == '🎁 Получить бесплатный ключ':
                     handle_free_key(bot_data, message)
                 elif text == '🔐 Узнать про Тайную витрину':
@@ -784,6 +895,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     handle_buy_vip(bot_data, chat_id)
                 elif text == '👑 Получить бесплатный VIP-ключ (Админ)':
                     handle_admin_free_vip(bot_data, message)
+                elif text == '📊 Статистика':
+                    handle_stats(bot_data, chat_id, telegram_user_id)
                 elif text == '❓ Помощь':
                     handle_help(bot_data, chat_id)
         
