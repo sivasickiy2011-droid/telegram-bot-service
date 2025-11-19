@@ -314,6 +314,78 @@ def handle_help(bot_data: Dict, chat_id: int):
     )
     send_telegram_message(bot_data['telegram_token'], chat_id, text)
 
+def handle_check_payment(bot_data: Dict, chat_id: int, telegram_user_id: int, order_id: str):
+    '''Проверка статуса платежа'''
+    try:
+        # Запрашиваем статус платежа через API
+        response = requests.post(
+            'https://functions.poehali.dev/b4079ccb-abcb-4171-b656-2462d93e1ac9',
+            json={'order_id': order_id},
+            timeout=10
+        )
+        result = response.json()
+        
+        if result.get('confirmed'):
+            # Платёж подтверждён! Получаем user_id и выдаём VIP-ключ
+            conn = get_db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            user_query = f'''SELECT id FROM t_p5255237_telegram_bot_service.bot_users 
+                            WHERE bot_id = {bot_data['id']} AND telegram_user_id = {telegram_user_id}'''
+            cursor.execute(user_query)
+            user_record = cursor.fetchone()
+            
+            if not user_record:
+                cursor.close()
+                conn.close()
+                send_telegram_message(bot_data['telegram_token'], chat_id, "⚠️ Ошибка: пользователь не найден")
+                return
+            
+            user_id = user_record['id']
+            
+            # Получаем свободный VIP QR-ключ
+            qr_query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
+                          WHERE bot_id = {bot_data['id']} AND code_type = 'paid' AND is_used = false 
+                          ORDER BY code_number LIMIT 1'''
+            cursor.execute(qr_query)
+            qr_code = cursor.fetchone()
+            
+            if qr_code:
+                # Помечаем ключ как использованный
+                update_query = f'''UPDATE t_p5255237_telegram_bot_service.qr_codes 
+                                  SET is_used = true, used_by_user_id = {user_id}, used_at = CURRENT_TIMESTAMP 
+                                  WHERE id = {qr_code['id']}'''
+                cursor.execute(update_query)
+                conn.commit()
+                
+                # Генерируем QR-код
+                qr_base64 = generate_qr_base64(qr_code['code_number'])
+                
+                caption = (
+                    f"✅ Оплата подтверждена! Спасибо за покупку!\n\n"
+                    f"💎 Ваш VIP QR-код №{qr_code['code_number']}\n\n"
+                    f"Покажите этот код на кассе для получения доступа к VIP-товарам"
+                )
+                
+                send_telegram_photo(bot_data['telegram_token'], chat_id, qr_base64, caption)
+            else:
+                send_telegram_message(bot_data['telegram_token'], chat_id, "✅ Оплата подтверждена! Но VIP-ключи закончились. Обратитесь к администратору.")
+            
+            cursor.close()
+            conn.close()
+        else:
+            status = result.get('status', 'UNKNOWN')
+            if status == 'NEW':
+                text = "⏳ Платёж создан, ожидается оплата. Нажмите кнопку '🔄 Проверить статус' после оплаты."
+            elif status == 'REJECTED' or status == 'CANCELED':
+                text = "❌ Платёж отменён. Попробуйте оформить новый заказ."
+            else:
+                text = f"⏳ Статус платежа: {status}. Нажмите '🔄 Проверить статус' через некоторое время."
+            
+            send_telegram_message(bot_data['telegram_token'], chat_id, text)
+            
+    except Exception as e:
+        send_telegram_message(bot_data['telegram_token'], chat_id, f"⚠️ Ошибка при проверке статуса: {str(e)}")
+
 def handle_start_payment(bot_data: Dict, chat_id: int, telegram_user_id: int):
     '''Начало процесса оплаты - запрос фамилии'''
     vip_price = bot_data.get('vip_price', 500)
@@ -447,11 +519,11 @@ def handle_phone_input_and_create_payment(bot_data: Dict, chat_id: int, telegram
             )
             
             inline_keyboard = create_inline_keyboard([
-                [{'text': '💳 Оплатить', 'url': payment_url}]
+                [{'text': '💳 Оплатить', 'url': payment_url}],
+                [{'text': '🔄 Проверить статус оплаты', 'callback_data': f'check_payment:{order_id}'}]
             ])
             
             send_telegram_message(bot_data['telegram_token'], chat_id, text, inline_keyboard)
-            send_telegram_message(bot_data['telegram_token'], chat_id, "⏳ Статус: на проверке...")
             
             # Очищаем состояние
             clear_user_state(bot_data['id'], telegram_user_id)
@@ -554,6 +626,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 handle_start_payment(bot_data, chat_id, telegram_user_id)
             elif data == 'main_menu':
                 handle_start(bot_data, {'chat': {'id': chat_id}, 'from': callback['from']})
+            elif data.startswith('check_payment:'):
+                order_id = data.split(':', 1)[1]
+                handle_check_payment(bot_data, chat_id, telegram_user_id, order_id)
             
             requests.post(
                 f"https://api.telegram.org/bot{bot_data['telegram_token']}/answerCallbackQuery",
