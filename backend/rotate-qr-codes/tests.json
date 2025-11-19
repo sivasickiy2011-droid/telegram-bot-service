@@ -1,0 +1,32 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "Get rotation schedule info",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "total_bots": 0
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Rotate all active bots",
+      "method": "POST",
+      "path": "/",
+      "body": {},
+      "expectedStatus": 200,
+      "expectedBody": {
+        "total_processed": 0
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

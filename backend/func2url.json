@@ -1,4 +1,5 @@
 {
+  "rotate-qr-codes": "https://functions.poehali.dev/b2dc4e49-9fa9-4baa-b90b-b2d457d9ebd8",
   "generate-qr-codes": "https://functions.poehali.dev/11492c68-8058-4d7e-a8a8-f6f82614e69e",
   "setup-webhook": "https://functions.poehali.dev/5de84ef3-0564-49a9-95a1-05f3de4ba313",
   "telegram-webhook": "https://functions.poehali.dev/e8eb375e-9ff3-4b43-9b51-12ac8338c9fe",
