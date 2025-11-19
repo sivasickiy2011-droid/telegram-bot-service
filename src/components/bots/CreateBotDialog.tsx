@@ -13,6 +13,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 interface CreateBotDialogProps {
   canCreateBot: boolean;
@@ -85,20 +91,31 @@ const CreateBotDialog = ({
           Создать бота
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Создать нового бота</DialogTitle>
           <DialogDescription>
             Бот будет отправлен на модерацию администратору перед запуском
           </DialogDescription>
         </DialogHeader>
-        <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 mb-2">
-          <p className="text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
-            <Icon name="Shield" size={14} className="mt-0.5 flex-shrink-0" />
-            <span>Администратор проверит бота на соответствие правилам перед активацией</span>
-          </p>
-        </div>
-        <div className="space-y-4 py-4">
+        <div className="overflow-y-auto overflow-x-hidden pr-2 flex-1 min-h-0">
+          <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 mb-4">
+            <p className="text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
+              <Icon name="Shield" size={14} className="mt-0.5 flex-shrink-0" />
+              <span>Администратор проверит бота на соответствие правилам перед активацией</span>
+            </p>
+          </div>
+          
+          <Accordion type="single" collapsible defaultValue="basic" className="space-y-2">
+            <AccordionItem value="basic" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-sm font-semibold hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <Icon name="Bot" size={16} />
+                  Основная информация
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4 pt-2">
           <div className="space-y-2">
             <Label htmlFor="bot-name">Название бота</Label>
             <Input 
@@ -117,10 +134,10 @@ const CreateBotDialog = ({
               value={newBotToken}
               onChange={(e) => setNewBotToken(e.target.value)}
             />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="unique-number">Уникальный номер бота (6 цифр)</Label>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="unique-number">Уникальный номер бота (6 цифр)</Label>
             <Input 
               id="unique-number" 
               placeholder="123456" 
@@ -131,12 +148,23 @@ const CreateBotDialog = ({
                 setUniqueNumber(value);
               }}
             />
-            <p className="text-xs text-muted-foreground">
-              Используется для идентификации бота в системе
-            </p>
-          </div>
-          
-          <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Используется для идентификации бота в системе
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="type" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-sm font-semibold hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <Icon name="Settings" size={16} />
+                  Тип и описание бота
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
             <Label htmlFor="bot-template">Тип бота</Label>
             <Select 
               value={newBotTemplate} 
@@ -158,10 +186,10 @@ const CreateBotDialog = ({
                 <SelectItem value="support">💬 Поддержка клиентов</SelectItem>
                 <SelectItem value="custom">⚙️ Кастомная логика</SelectItem>
               </SelectContent>
-            </Select>
-          </div>
+                  </Select>
+                </div>
 
-          <div className="space-y-2">
+                <div className="space-y-2">
             <Label htmlFor="bot-description">Краткое описание (что делает бот)</Label>
             <Textarea
               id="bot-description"
@@ -181,20 +209,24 @@ const CreateBotDialog = ({
               onChange={(e) => setNewBotLogic(e.target.value)}
               rows={6}
             />
-            <p className="text-xs text-muted-foreground">
-              Администратор будет проверять эту информацию при модерации
-            </p>
-          </div>
+                  <p className="text-xs text-muted-foreground">
+                    Администратор будет проверять эту информацию при модерации
+                  </p>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
           
           {newBotTemplate === 'keys' && (
-            <>
-              <div className="p-4 rounded-lg border bg-gradient-to-br from-purple-500/10 to-blue-500/10 space-y-4">
-                <div>
-                  <p className="text-sm font-semibold mb-3 flex items-center gap-2">
-                    <Icon name="Settings" size={16} />
-                    Настройки QR-кодов
-                  </p>
-                  
+            <AccordionItem value="qr-settings" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-sm font-semibold hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <Icon name="QrCode" size={16} />
+                  Настройки QR-кодов
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4 pt-2">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="qr-free-count" className="text-xs">
@@ -222,10 +254,10 @@ const CreateBotDialog = ({
                         onChange={(e) => setQrPaidCount(parseInt(e.target.value) || 0)}
                         className="h-9"
                       />
-                    </div>
                   </div>
+                </div>
 
-                  <div className="mt-4 space-y-2">
+                <div className="space-y-2">
                     <Label className="text-xs">Ротация QR-кодов</Label>
                     <div className="flex gap-2">
                       <Input
@@ -249,12 +281,12 @@ const CreateBotDialog = ({
                         </SelectContent>
                       </Select>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Как часто QR-коды будут обновляться (0 = никогда)
-                    </p>
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Как часто QR-коды будут обновляться (0 = никогда)
+                  </p>
+                </div>
 
-                  <div className="mt-4 space-y-3">
+                <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="payment-enabled"
@@ -269,8 +301,8 @@ const CreateBotDialog = ({
                       </Label>
                     </div>
 
-                    {paymentEnabled && (
-                      <div className="space-y-2 pl-6">
+                  {paymentEnabled && (
+                    <div className="space-y-2 pl-6">
                         <Label htmlFor="payment-url" className="text-xs">
                           Ссылка для оплаты
                         </Label>
@@ -282,25 +314,27 @@ const CreateBotDialog = ({
                           onChange={(e) => setPaymentUrl(e.target.value)}
                           className="h-9"
                         />
-                        <p className="text-xs text-muted-foreground">
-                          Эта ссылка откроется при нажатии кнопки "Купить VIP-ключ"
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                      <p className="text-xs text-muted-foreground">
+                        Эта ссылка откроется при нажатии кнопки "Купить VIP-ключ"
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-            </>
+            </AccordionContent>
+          </AccordionItem>
           )}
+        </Accordion>
           
-          <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+        <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 mt-4">
             <p className="text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
               <Icon name="Info" size={14} className="mt-0.5 flex-shrink-0" />
               <span>Для создания бота получите токен у @BotFather в Telegram. Отправьте команду /newbot и следуйте инструкциям.</span>
             </p>
           </div>
         </div>
-        <div className="flex justify-end gap-3">
+        
+        <div className="flex justify-end gap-3 pt-4 border-t mt-4">
           <DialogTrigger asChild>
             <Button variant="outline">Отмена</Button>
           </DialogTrigger>
