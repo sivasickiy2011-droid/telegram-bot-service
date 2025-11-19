@@ -164,7 +164,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 def create_card_payment(terminal_key: str, password: str, amount: int, order_id: str, 
                         description: str, success_url: str, fail_url: str) -> str:
     '''Create card payment via T-Bank API'''
-    api_url = 'https://securepay.tinkoff.ru/v2/Init'
+    is_test = 'DEMO' in terminal_key
+    api_url = 'https://rest-api-test.tinkoff.ru/v2/Init' if is_test else 'https://securepay.tinkoff.ru/v2/Init'
     
     payload = {
         'TerminalKey': terminal_key,
@@ -202,7 +203,8 @@ def create_card_payment(terminal_key: str, password: str, amount: int, order_id:
 def create_sbp_payment(terminal_key: str, password: str, amount: int, 
                        order_id: str, description: str) -> Dict[str, str]:
     '''Create SBP payment via T-Bank API'''
-    api_url = 'https://securepay.tinkoff.ru/v2/Init'
+    is_test = 'DEMO' in terminal_key
+    api_url = 'https://rest-api-test.tinkoff.ru/v2/Init' if is_test else 'https://securepay.tinkoff.ru/v2/Init'
     
     payload = {
         'TerminalKey': terminal_key,
@@ -229,7 +231,7 @@ def create_sbp_payment(terminal_key: str, password: str, amount: int,
             if data.get('Success'):
                 payment_id = data.get('PaymentId', '')
                 
-                qr_url = f'https://securepay.tinkoff.ru/v2/GetQr'
+                qr_url = 'https://rest-api-test.tinkoff.ru/v2/GetQr' if is_test else 'https://securepay.tinkoff.ru/v2/GetQr'
                 qr_payload = {
                     'TerminalKey': terminal_key,
                     'PaymentId': payment_id
