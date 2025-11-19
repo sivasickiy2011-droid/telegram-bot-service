@@ -112,9 +112,17 @@ const BotsTab = ({
     setLoadingStats(true);
     setBotStats(null);
     
+    console.log('Opening stats for bot:', bot.id, bot.name);
+    
     try {
-      const response = await fetch(`https://functions.poehali.dev/5c1d4d82-b836-4d64-b74e-c317fde888e9?bot_id=${bot.id}`);
+      const url = `https://functions.poehali.dev/5c1d4d82-b836-4d64-b74e-c317fde888e9?bot_id=${bot.id}`;
+      console.log('Fetching stats from:', url);
+      
+      const response = await fetch(url);
+      console.log('Response status:', response.status);
+      
       const data = await response.json();
+      console.log('Response data:', data);
       
       if (response.ok) {
         setBotStats(data.stats);
@@ -126,9 +134,10 @@ const BotsTab = ({
         });
       }
     } catch (error) {
+      console.error('Stats loading error:', error);
       toast({
         title: 'Ошибка',
-        description: 'Не удалось загрузить статистику',
+        description: `Не удалось загрузить статистику: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
         variant: 'destructive'
       });
     } finally {
