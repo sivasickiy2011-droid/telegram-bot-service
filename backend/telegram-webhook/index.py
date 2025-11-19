@@ -15,6 +15,36 @@ def get_db_connection():
         raise ValueError('DATABASE_URL not configured')
     return psycopg2.connect(database_url)
 
+def get_owner_telegram_id(bot_id: int) -> Optional[int]:
+    '''Получить Telegram ID владельца бота'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    query = f'''SELECT u.telegram_id 
+               FROM t_p5255237_telegram_bot_service.bots b
+               JOIN t_p5255237_telegram_bot_service.users u ON b.user_id = u.id
+               WHERE b.id = {bot_id}'''
+    cursor.execute(query)
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    return result['telegram_id'] if result else None
+
+def is_user_admin(bot_id: int, telegram_user_id: int) -> bool:
+    '''Проверить является ли пользователь администратором бота'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    query = f'''SELECT is_admin FROM t_p5255237_telegram_bot_service.bot_users 
+               WHERE bot_id = {bot_id} AND telegram_user_id = {telegram_user_id}'''
+    cursor.execute(query)
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    return result and result.get('is_admin', False)
+
 def get_bot_by_token(token: str) -> Optional[Dict]:
     '''Получить бота по токену'''
     conn = get_db_connection()
@@ -31,8 +61,8 @@ def get_bot_by_token(token: str) -> Optional[Dict]:
     conn.close()
     return dict(bot) if bot else None
 
-def register_telegram_user(bot_id: int, user_data: Dict) -> int:
-    '''Регистрирует пользователя Telegram в базе данных'''
+def register_telegram_user(bot_id: int, user_data: Dict, owner_telegram_id: int = None) -> int:
+    '''Регистрирует пользователя Telegram в базе данных и проверяет администратора'''
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
@@ -45,17 +75,24 @@ def register_telegram_user(bot_id: int, user_data: Dict) -> int:
     first_name_escaped = first_name.replace("'", "''")
     last_name_escaped = last_name.replace("'", "''")
     
-    check_query = f'''SELECT id FROM t_p5255237_telegram_bot_service.bot_users 
+    check_query = f'''SELECT id, is_admin FROM t_p5255237_telegram_bot_service.bot_users 
                      WHERE bot_id = {bot_id} AND telegram_user_id = {user_id}'''
     cursor.execute(check_query)
     existing = cursor.fetchone()
     
+    is_admin = owner_telegram_id and user_id == owner_telegram_id
+    
     if existing:
         db_user_id = existing['id']
+        if is_admin and not existing.get('is_admin'):
+            update_query = f'''UPDATE t_p5255237_telegram_bot_service.bot_users 
+                              SET is_admin = true WHERE id = {db_user_id}'''
+            cursor.execute(update_query)
+            conn.commit()
     else:
         insert_query = f'''INSERT INTO t_p5255237_telegram_bot_service.bot_users 
-                          (bot_id, telegram_user_id, username, first_name, last_name)
-                          VALUES ({bot_id}, {user_id}, '{username_escaped}', '{first_name_escaped}', '{last_name_escaped}')
+                          (bot_id, telegram_user_id, username, first_name, last_name, is_admin)
+                          VALUES ({bot_id}, {user_id}, '{username_escaped}', '{first_name_escaped}', '{last_name_escaped}', {is_admin})
                           RETURNING id'''
         cursor.execute(insert_query)
         db_user_id = cursor.fetchone()['id']
@@ -109,10 +146,25 @@ def clear_user_state(bot_id: int, telegram_user_id: int):
     cursor.close()
     conn.close()
 
-def get_free_qr_key(bot_id: int, user_id: int) -> Optional[Dict]:
-    '''Получить свободный бесплатный QR-ключ'''
+def get_free_qr_key(bot_id: int, user_id: int, telegram_user_id: int) -> Optional[Dict]:
+    '''Получить свободный бесплатный QR-ключ с проверкой ограничений'''
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    check_user_query = f'''SELECT received_free_qr, is_admin FROM t_p5255237_telegram_bot_service.bot_users 
+                          WHERE bot_id = {bot_id} AND telegram_user_id = {telegram_user_id}'''
+    cursor.execute(check_user_query)
+    user_info = cursor.fetchone()
+    
+    if not user_info:
+        cursor.close()
+        conn.close()
+        return None
+    
+    if user_info['received_free_qr'] and not user_info['is_admin']:
+        cursor.close()
+        conn.close()
+        return {'already_received': True}
     
     query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
                WHERE bot_id = {bot_id} AND code_type = 'free' AND is_used = false 
@@ -125,6 +177,13 @@ def get_free_qr_key(bot_id: int, user_id: int) -> Optional[Dict]:
                           SET is_used = true, used_by_user_id = {user_id}, used_at = CURRENT_TIMESTAMP 
                           WHERE id = {qr_code['id']}'''
         cursor.execute(update_query)
+        
+        if not user_info['is_admin']:
+            mark_user_query = f'''UPDATE t_p5255237_telegram_bot_service.bot_users 
+                                 SET received_free_qr = true, free_qr_received_at = CURRENT_TIMESTAMP 
+                                 WHERE bot_id = {bot_id} AND telegram_user_id = {telegram_user_id}'''
+            cursor.execute(mark_user_query)
+        
         conn.commit()
     
     cursor.close()
@@ -173,15 +232,21 @@ def send_telegram_photo(token: str, chat_id: int, photo_base64: str, caption: st
     response = requests.post(url, data=data, files=files)
     return response.json()
 
-def create_main_menu_keyboard() -> Dict:
-    '''Создает главное меню с кнопками'''
+def create_main_menu_keyboard(bot_id: int = None, telegram_user_id: int = None) -> Dict:
+    '''Создает главное меню с кнопками (с дополнительной кнопкой для администратора)'''
+    buttons = [
+        [{'text': '🎁 Получить бесплатный ключ'}],
+        [{'text': '🔐 Узнать про Тайную витрину'}],
+        [{'text': '💎 Купить VIP-ключ'}]
+    ]
+    
+    if bot_id and telegram_user_id and is_user_admin(bot_id, telegram_user_id):
+        buttons.append([{'text': '👑 Получить бесплатный VIP-ключ (Админ)'}])
+    
+    buttons.append([{'text': '❓ Помощь'}])
+    
     return {
-        'keyboard': [
-            [{'text': '🎁 Получить бесплатный ключ'}],
-            [{'text': '🔐 Узнать про Тайную витрину'}],
-            [{'text': '💎 Купить VIP-ключ'}],
-            [{'text': '❓ Помощь'}]
-        ],
+        'keyboard': buttons,
         'resize_keyboard': True
     }
 
@@ -196,7 +261,8 @@ def handle_start(bot_data: Dict, message: Dict):
     chat_id = message['chat']['id']
     user = message['from']
     
-    register_telegram_user(bot_data['id'], user)
+    owner_telegram_id = get_owner_telegram_id(bot_data['id'])
+    register_telegram_user(bot_data['id'], user, owner_telegram_id)
     
     text = (
         "🚀 Привет! Я бот POLYTOPE.\n\n"
@@ -205,15 +271,31 @@ def handle_start(bot_data: Dict, message: Dict):
         "Выберите действие:"
     )
     
-    send_telegram_message(bot_data['telegram_token'], chat_id, text, create_main_menu_keyboard())
+    keyboard = create_main_menu_keyboard(bot_data['id'], user['id'])
+    send_telegram_message(bot_data['telegram_token'], chat_id, text, keyboard)
 
 def handle_free_key(bot_data: Dict, message: Dict):
     '''Обработка запроса бесплатного ключа'''
     chat_id = message['chat']['id']
     user = message['from']
     
-    user_id = register_telegram_user(bot_data['id'], user)
-    qr_key = get_free_qr_key(bot_data['id'], user_id)
+    owner_telegram_id = get_owner_telegram_id(bot_data['id'])
+    user_id = register_telegram_user(bot_data['id'], user, owner_telegram_id)
+    qr_key = get_free_qr_key(bot_data['id'], user_id, user['id'])
+    
+    if qr_key and qr_key.get('already_received'):
+        text = (
+            "✅ Вы уже получили свой бесплатный ключ!\n\n"
+            "Каждый пользователь может получить только один бесплатный ключ.\n\n"
+            "Но вы можете приобрести VIP-ключ для доступа к Тайной витрине!"
+        )
+        
+        inline_keyboard = create_inline_keyboard([
+            [{'text': '💎 Купить VIP-ключ', 'callback_data': 'buy_vip'}]
+        ])
+        
+        send_telegram_message(bot_data['telegram_token'], chat_id, text, inline_keyboard)
+        return
     
     if qr_key:
         qr_base64 = generate_qr_base64(qr_key['code_number'])
@@ -314,14 +396,60 @@ def handle_help(bot_data: Dict, chat_id: int):
     )
     send_telegram_message(bot_data['telegram_token'], chat_id, text)
 
+def handle_admin_free_vip(bot_data: Dict, message: Dict):
+    '''Выдача бесплатного VIP-ключа для администратора'''
+    chat_id = message['chat']['id']
+    user = message['from']
+    telegram_user_id = user['id']
+    
+    if not is_user_admin(bot_data['id'], telegram_user_id):
+        text = "⚠️ Эта функция доступна только администратору бота."
+        send_telegram_message(bot_data['telegram_token'], chat_id, text)
+        return
+    
+    owner_telegram_id = get_owner_telegram_id(bot_data['id'])
+    user_id = register_telegram_user(bot_data['id'], user, owner_telegram_id)
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    qr_query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
+                  WHERE bot_id = {bot_data['id']} AND code_type = 'vip' AND is_used = false 
+                  ORDER BY code_number LIMIT 1'''
+    cursor.execute(qr_query)
+    qr_code = cursor.fetchone()
+    
+    if qr_code:
+        update_query = f'''UPDATE t_p5255237_telegram_bot_service.qr_codes 
+                          SET is_used = true, used_by_user_id = {user_id}, used_at = CURRENT_TIMESTAMP 
+                          WHERE id = {qr_code['id']}'''
+        cursor.execute(update_query)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        qr_base64 = generate_qr_base64(qr_code['code_number'])
+        
+        caption = (
+            f"👑 Ваш VIP QR-код №{qr_code['code_number']} (Админ)\n\n"
+            f"Покажите этот код на кассе для получения доступа к VIP-товарам"
+        )
+        
+        send_telegram_photo(bot_data['telegram_token'], chat_id, qr_base64, caption)
+    else:
+        cursor.close()
+        conn.close()
+        text = "😔 VIP-ключи закончились."
+        send_telegram_message(bot_data['telegram_token'], chat_id, text)
+
 def handle_check_payment(bot_data: Dict, chat_id: int, telegram_user_id: int):
     '''Проверка статуса всех платежей пользователя за сегодня'''
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Получаем внутренний user_id
-        user_query = f'''SELECT id FROM t_p5255237_telegram_bot_service.bot_users 
+        # Получаем внутренний user_id и проверяем статус VIP
+        user_query = f'''SELECT id, received_vip_qr, is_admin FROM t_p5255237_telegram_bot_service.bot_users 
                         WHERE bot_id = {bot_data['id']} AND telegram_user_id = {telegram_user_id}'''
         cursor.execute(user_query)
         user_record = cursor.fetchone()
@@ -333,6 +461,15 @@ def handle_check_payment(bot_data: Dict, chat_id: int, telegram_user_id: int):
             return
         
         user_id = user_record['id']
+        is_admin = user_record.get('is_admin', False)
+        already_received_vip = user_record.get('received_vip_qr', False)
+        
+        if already_received_vip and not is_admin:
+            send_telegram_message(bot_data['telegram_token'], chat_id, 
+                "✅ Вы уже получили свой VIP-ключ!\n\nКаждый пользователь может получить только один VIP-ключ за оплату.")
+            cursor.close()
+            conn.close()
+            return
         
         # Получаем все платежи пользователя за сегодня со статусом NEW, AUTHORIZED
         payments_query = f'''SELECT order_id, payment_id, status, amount 
@@ -382,6 +519,14 @@ def handle_check_payment(bot_data: Dict, chat_id: int, telegram_user_id: int):
                                           SET is_used = true, used_by_user_id = {user_id}, used_at = CURRENT_TIMESTAMP 
                                           WHERE id = {qr_code['id']}'''
                         cursor.execute(update_query)
+                        
+                        # Помечаем что пользователь получил VIP-ключ (кроме админа)
+                        if not is_admin:
+                            mark_vip_query = f'''UPDATE t_p5255237_telegram_bot_service.bot_users 
+                                               SET received_vip_qr = true, vip_qr_received_at = CURRENT_TIMESTAMP 
+                                               WHERE bot_id = {bot_data['id']} AND telegram_user_id = {telegram_user_id}'''
+                            cursor.execute(mark_vip_query)
+                        
                         conn.commit()
                         
                         # Генерируем QR-код
@@ -637,6 +782,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     handle_secret_shop(bot_data, chat_id)
                 elif text == '💎 Купить VIP-ключ':
                     handle_buy_vip(bot_data, chat_id)
+                elif text == '👑 Получить бесплатный VIP-ключ (Админ)':
+                    handle_admin_free_vip(bot_data, message)
                 elif text == '❓ Помощь':
                     handle_help(bot_data, chat_id)
         
