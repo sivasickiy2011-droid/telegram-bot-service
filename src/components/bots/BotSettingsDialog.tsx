@@ -175,7 +175,7 @@ const BotSettingsDialog = ({
                       type="number"
                       min="0"
                       value={editVipPrice}
-                      onChange={(e) => setEditVipPrice(parseInt(e.target.value) || 0))
+                      onChange={(e) => setEditVipPrice(parseInt(e.target.value) || 0)}
                     />
                   </div>
                   
