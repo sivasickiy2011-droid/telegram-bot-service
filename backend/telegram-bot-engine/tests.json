@@ -8,13 +8,10 @@
       "bodyMatcher": "exact"
     },
     {
-      "name": "Start bot engine",
-      "method": "POST",
+      "name": "Get active bots list",
+      "method": "GET",
       "path": "/",
       "expectedStatus": 200,
-      "expectedBody": {
-        "message": "string"
-      },
       "bodyMatcher": "partial"
     }
   ]

@@ -140,6 +140,7 @@ const Index = () => {
                 offerImageUrl={botManagement.offerImageUrl}
                 privacyConsentEnabled={botManagement.privacyConsentEnabled}
                 privacyConsentText={botManagement.privacyConsentText}
+                secretShopText={botManagement.secretShopText}
                 isCreatingBot={botManagement.isCreatingBot}
                 setNewBotName={botManagement.setNewBotName}
                 setNewBotToken={botManagement.setNewBotToken}
@@ -156,6 +157,7 @@ const Index = () => {
                 setOfferImageUrl={botManagement.setOfferImageUrl}
                 setPrivacyConsentEnabled={botManagement.setPrivacyConsentEnabled}
                 setPrivacyConsentText={botManagement.setPrivacyConsentText}
+                setSecretShopText={botManagement.setSecretShopText}
                 handleCreateBot={botManagement.handleCreateBot}
                 handleDeleteBot={botManagement.handleDeleteBot}
                 getStatusColor={getStatusColor}

@@ -41,6 +41,7 @@ interface BotsTabProps {
   offerImageUrl: string;
   privacyConsentEnabled: boolean;
   privacyConsentText: string;
+  secretShopText: string;
   isCreatingBot: boolean;
   setNewBotName: (value: string) => void;
   setNewBotToken: (value: string) => void;
@@ -57,6 +58,7 @@ interface BotsTabProps {
   setOfferImageUrl: (value: string) => void;
   setPrivacyConsentEnabled: (value: boolean) => void;
   setPrivacyConsentText: (value: string) => void;
+  setSecretShopText: (value: string) => void;
   handleCreateBot: () => void;
   handleDeleteBot: (botId: string) => void;
   getStatusColor: (status: string) => string;
@@ -81,6 +83,7 @@ const BotsTab = ({
   offerImageUrl,
   privacyConsentEnabled,
   privacyConsentText,
+  secretShopText,
   isCreatingBot,
   setNewBotName,
   setNewBotToken,
@@ -97,6 +100,7 @@ const BotsTab = ({
   setOfferImageUrl,
   setPrivacyConsentEnabled,
   setPrivacyConsentText,
+  setSecretShopText,
   handleCreateBot,
   handleDeleteBot,
   getStatusColor,
@@ -337,6 +341,7 @@ const BotsTab = ({
           offerImageUrl={offerImageUrl}
           privacyConsentEnabled={privacyConsentEnabled}
           privacyConsentText={privacyConsentText}
+          secretShopText={secretShopText}
           isCreatingBot={isCreatingBot}
           setNewBotName={setNewBotName}
           setNewBotToken={setNewBotToken}
@@ -353,6 +358,7 @@ const BotsTab = ({
           setOfferImageUrl={setOfferImageUrl}
           setPrivacyConsentEnabled={setPrivacyConsentEnabled}
           setPrivacyConsentText={setPrivacyConsentText}
+          setSecretShopText={setSecretShopText}
           handleCreateBot={handleCreateBot}
         />
       </div>

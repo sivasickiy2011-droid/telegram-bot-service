@@ -32,6 +32,7 @@ export const useBotManagement = (currentUser: any) => {
   const [offerImageUrl, setOfferImageUrl] = useState('');
   const [privacyConsentEnabled, setPrivacyConsentEnabled] = useState(false);
   const [privacyConsentText, setPrivacyConsentText] = useState('Я согласен на обработку персональных данных');
+  const [secretShopText, setSecretShopText] = useState('');
   const [isCreatingBot, setIsCreatingBot] = useState(false);
   const { toast } = useToast();
 
@@ -69,6 +70,7 @@ export const useBotManagement = (currentUser: any) => {
         offer_image_url: bot.offer_image_url,
         privacy_consent_enabled: bot.privacy_consent_enabled,
         privacy_consent_text: bot.privacy_consent_text,
+        secret_shop_text: bot.secret_shop_text,
       })));
     } catch (error) {
       console.error('Failed to load bots:', error);
@@ -124,6 +126,7 @@ export const useBotManagement = (currentUser: any) => {
         offer_image_url: offerImageUrl,
         privacy_consent_enabled: privacyConsentEnabled,
         privacy_consent_text: privacyConsentText,
+        secret_shop_text: secretShopText,
       });
 
       toast({
@@ -145,6 +148,7 @@ export const useBotManagement = (currentUser: any) => {
       setOfferImageUrl('');
       setPrivacyConsentEnabled(false);
       setPrivacyConsentText('Я согласен на обработку персональных данных');
+      setSecretShopText('');
       setNewBotTemplate('keys');
       loadUserBots(currentUser.id);
     } catch (error: any) {
@@ -205,6 +209,7 @@ export const useBotManagement = (currentUser: any) => {
     offerImageUrl,
     privacyConsentEnabled,
     privacyConsentText,
+    secretShopText,
     isCreatingBot,
     setNewBotName,
     setNewBotToken,
@@ -221,6 +226,7 @@ export const useBotManagement = (currentUser: any) => {
     setOfferImageUrl,
     setPrivacyConsentEnabled,
     setPrivacyConsentText,
+    setSecretShopText,
     loadUserBots,
     handleCreateBot,
     handleDeleteBot,

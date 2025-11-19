@@ -37,6 +37,7 @@ interface CreateBotDialogProps {
   offerImageUrl: string;
   privacyConsentEnabled: boolean;
   privacyConsentText: string;
+  secretShopText: string;
   isCreatingBot: boolean;
   setNewBotName: (value: string) => void;
   setNewBotToken: (value: string) => void;
@@ -53,6 +54,7 @@ interface CreateBotDialogProps {
   setOfferImageUrl: (value: string) => void;
   setPrivacyConsentEnabled: (value: boolean) => void;
   setPrivacyConsentText: (value: string) => void;
+  setSecretShopText: (value: string) => void;
   handleCreateBot: () => void;
 }
 
@@ -73,6 +75,7 @@ const CreateBotDialog = ({
   offerImageUrl,
   privacyConsentEnabled,
   privacyConsentText,
+  secretShopText,
   isCreatingBot,
   setNewBotName,
   setNewBotToken,
@@ -89,6 +92,7 @@ const CreateBotDialog = ({
   setOfferImageUrl,
   setPrivacyConsentEnabled,
   setPrivacyConsentText,
+  setSecretShopText,
   handleCreateBot,
 }: CreateBotDialogProps) => {
   return (
@@ -392,6 +396,23 @@ const CreateBotDialog = ({
                       </p>
                     </div>
                   )}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="secret-shop-text" className="text-xs">
+                    Текст о Тайной витрине (кнопка "🔐 Узнать про Тайную витрину")
+                  </Label>
+                  <Textarea
+                    id="secret-shop-text"
+                    placeholder="🔐 Тайная витрина — это эксклюзивная закрытая распродажа!..."
+                    value={secretShopText}
+                    onChange={(e) => setSecretShopText(e.target.value)}
+                    rows={4}
+                    className="text-xs"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Этот текст будет показан при нажатии на кнопку "Узнать про Тайную витрину". Если не заполнено - используется текст по умолчанию.
+                  </p>
                 </div>
               </div>
             </AccordionContent>

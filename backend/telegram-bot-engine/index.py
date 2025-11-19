@@ -161,18 +161,41 @@ async def handle_free_key(message: types.Message, bot_id: int):
         
         await message.answer(text, reply_markup=keyboard)
 
-async def handle_secret_shop(message: types.Message):
+async def handle_secret_shop(message: types.Message, bot_id: int = None):
     '''Информация о Тайной витрине'''
-    text = (
+    
+    custom_text = None
+    if bot_id:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            query = f"SELECT secret_shop_text FROM t_p5255237_telegram_bot_service.bots WHERE id = {bot_id}"
+            cursor.execute(query)
+            bot_data = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if bot_data and bot_data.get('secret_shop_text'):
+                custom_text = bot_data['secret_shop_text']
+        except:
+            pass
+    
+    text = custom_text or (
         "🔐 Тайная витрина — это эксклюзивная закрытая распродажа!\n\n"
         "📅 Даты: 21-23 ноября\n"
         "💎 Доступ: Только с VIP-ключом\n"
         "🎁 Специальные предложения и скидки до 70%\n\n"
-        "VIP-ключ открывает доступ к товарам, которых нет в обычном магазине."
+        "VIP-ключ открывает доступ к товарам, которых нет в обычном магазине.\n\n"
+        "✨ Что вас ждёт в Тайной витрине:\n"
+        "• Эксклюзивные товары\n"
+        "• Ограниченные коллекции\n"
+        "• Скидки до 70%\n"
+        "• Приоритетное обслуживание\n\n"
+        "Количество VIP-ключей ограничено!"
     )
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💎 Купить VIP-ключ", callback_data="buy_vip")]
+        [InlineKeyboardButton(text="💎 Купить VIP-ключ", callback_data="buy_vip")],
+        [InlineKeyboardButton(text="🔙 В главное меню", callback_data="main_menu")]
     ])
     
     await message.answer(text, reply_markup=keyboard)
@@ -201,9 +224,11 @@ async def handle_help(message: types.Message):
 async def callback_handler(callback: types.CallbackQuery, bot_id: int):
     '''Обработчик inline кнопок'''
     if callback.data == "secret_shop":
-        await handle_secret_shop(callback.message)
+        await handle_secret_shop(callback.message, bot_id)
     elif callback.data == "buy_vip":
         await handle_buy_vip(callback.message)
+    elif callback.data == "main_menu":
+        await cmd_start(callback.message, bot_id)
     await callback.answer()
 
 async def run_bot(bot_data: Dict):
@@ -223,7 +248,7 @@ async def run_bot(bot_data: Dict):
     
     @dp.message(F.text == "🔐 Узнать про Тайную витрину")
     async def secret_shop_handler(message: types.Message):
-        await handle_secret_shop(message)
+        await handle_secret_shop(message, bot_id)
     
     @dp.message(F.text == "💎 Купить VIP-ключ")
     async def buy_vip_handler(message: types.Message):
@@ -291,7 +316,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if method == 'POST':
-        body_data = json.loads(event.get('body', '{}'))
+        body_str = event.get('body', '{}') or '{}'
+        body_data = json.loads(body_str) if body_str else {}
         bot_id = body_data.get('bot_id')
         
         if not bot_id:
