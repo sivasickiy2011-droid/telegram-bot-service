@@ -169,6 +169,39 @@ const BotStatsDialog = ({
                 </a>
               </div>
             )}
+            
+            {botStats.users_list && botStats.users_list.length > 0 && (
+              <div className="border rounded-lg p-4">
+                <h3 className="font-semibold flex items-center gap-2 mb-3">
+                  <Icon name="Users" size={16} />
+                  Пользователи бота ({botStats.users_list.length})
+                </h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {botStats.users_list.map((user: any) => (
+                    <div key={user.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                          {user.first_name?.[0] || user.username?.[0] || 'U'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">
+                            {user.first_name} {user.last_name}
+                            {user.username && <span className="text-muted-foreground ml-1">@{user.username}</span>}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            QR-кодов: {user.qr_codes_count}
+                            {user.qr_codes && <span className="ml-2">№{user.qr_codes}</span>}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(user.created_at).toLocaleDateString('ru-RU')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="py-8 text-center text-muted-foreground">

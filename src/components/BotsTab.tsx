@@ -149,21 +149,27 @@ const BotsTab = ({
     console.log('Opening stats for bot:', bot.id, bot.name);
     
     try {
-      const url = `https://functions.poehali.dev/5c1d4d82-b836-4d64-b74e-c317fde888e9?bot_id=${bot.id}`;
-      console.log('Fetching stats from:', url);
+      const statsUrl = `https://functions.poehali.dev/5c1d4d82-b836-4d64-b74e-c317fde888e9?bot_id=${bot.id}`;
+      const usersUrl = `https://functions.poehali.dev/2b3fdb38-ec2a-4025-82c2-f33a66905630?bot_id=${bot.id}`;
       
-      const response = await fetch(url);
-      console.log('Response status:', response.status);
+      const [statsResponse, usersResponse] = await Promise.all([
+        fetch(statsUrl),
+        fetch(usersUrl)
+      ]);
       
-      const data = await response.json();
-      console.log('Response data:', data);
+      const statsData = await statsResponse.json();
+      const usersData = await usersResponse.json();
       
-      if (response.ok) {
-        setBotStats(data.stats);
+      if (statsResponse.ok) {
+        const combinedStats = {
+          ...statsData.stats,
+          users_list: usersResponse.ok ? usersData.users : []
+        };
+        setBotStats(combinedStats);
       } else {
         toast({
           title: 'Ошибка',
-          description: data.error || 'Не удалось загрузить статистику',
+          description: statsData.error || 'Не удалось загрузить статистику',
           variant: 'destructive'
         });
       }

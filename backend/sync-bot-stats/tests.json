@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "Sync all bots statistics",
+      "method": "POST",
+      "path": "/",
+      "body": {},
+      "expectedStatus": 200,
+      "expectedBody": {
+        "synced_bots": "number",
+        "bots": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Sync specific bot statistics",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "bot_id": 11
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "synced_bots": "number",
+        "bots": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

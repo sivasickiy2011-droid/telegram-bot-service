@@ -1,4 +1,6 @@
 {
+  "sync-bot-stats": "https://functions.poehali.dev/c76b9661-95e2-441d-ab96-0972bb18a478",
+  "bot-users": "https://functions.poehali.dev/2b3fdb38-ec2a-4025-82c2-f33a66905630",
   "tbank-test-payment": "https://functions.poehali.dev/d3348932-2960-4d59-ab09-7708e4dac9b1",
   "bot-stats": "https://functions.poehali.dev/5c1d4d82-b836-4d64-b74e-c317fde888e9",
   "auto-rotate-scheduler": "https://functions.poehali.dev/ebf114aa-c461-46e1-b455-d28991013d12",

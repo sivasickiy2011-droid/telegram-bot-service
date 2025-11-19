@@ -35,13 +35,19 @@ export const useBotManagement = (currentUser: any) => {
 
   const loadUserBots = async (userId: number) => {
     try {
+      await fetch('https://functions.poehali.dev/c76b9661-95e2-441d-ab96-0972bb18a478', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      
       const response = await getBots(userId);
       setBots(response.bots.map((bot: any) => ({
         id: bot.id.toString(),
         name: bot.name,
         status: bot.status,
-        users: bot.total_users,
-        messages: bot.total_messages,
+        users: bot.total_users || 0,
+        messages: bot.total_messages || 0,
         template: bot.template,
         moderationStatus: bot.moderation_status,
         moderationReason: bot.moderation_reason,

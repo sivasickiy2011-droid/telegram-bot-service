@@ -1,0 +1,24 @@
+{
+  "tests": [
+    {
+      "name": "Get bot users without bot_id",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "bot_id parameter is required"
+      }
+    },
+    {
+      "name": "Get bot users with bot_id",
+      "method": "GET",
+      "path": "/?bot_id=11",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "users": "array",
+        "total": "number"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
