@@ -37,6 +37,7 @@ interface BotsTabProps {
   setNewBotLogic: (value: string) => void;
   setNewBotTemplate: (value: string) => void;
   handleCreateBot: () => void;
+  handleDeleteBot: (botId: string) => void;
   getStatusColor: (status: string) => string;
   currentUser?: any;
 }
@@ -55,6 +56,7 @@ const BotsTab = ({
   setNewBotLogic,
   setNewBotTemplate,
   handleCreateBot,
+  handleDeleteBot,
   getStatusColor,
   currentUser,
 }: BotsTabProps) => {
@@ -301,24 +303,54 @@ const BotsTab = ({
               </div>
             )}
             
-            <div className="flex gap-2">
+            {bot.moderationStatus === 'approved' && bot.status === 'inactive' && (
+              <div className="mb-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
+                  <Icon name="Info" size={12} className="inline mr-1" />
+                  Бот одобрен! Для активации обратитесь к администратору
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  После активации бот начнет обрабатывать сообщения согласно заданной логике
+                </p>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  disabled={bot.moderationStatus === 'pending' || bot.moderationStatus === 'rejected'}
+                  onClick={() => alert('Настройки бота будут доступны в следующей версии')}
+                >
+                  <Icon name="Settings" size={14} className="mr-1" />
+                  Настройки
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  disabled={bot.moderationStatus === 'pending' || bot.moderationStatus === 'rejected'}
+                  onClick={() => alert('Статистика бота будет доступна в следующей версии')}
+                >
+                  <Icon name="BarChart3" size={14} className="mr-1" />
+                  Статистика
+                </Button>
+              </div>
+              
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex-1"
-                disabled={bot.moderationStatus === 'pending' || bot.moderationStatus === 'rejected'}
+                className="w-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                onClick={() => {
+                  if (confirm(`Удалить бота "${bot.name}"? Это действие нельзя отменить.`)) {
+                    handleDeleteBot(bot.id);
+                  }
+                }}
               >
-                <Icon name="Settings" size={14} className="mr-1" />
-                Настройки
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1"
-                disabled={bot.moderationStatus === 'pending' || bot.moderationStatus === 'rejected'}
-              >
-                <Icon name="BarChart3" size={14} className="mr-1" />
-                Статистика
+                <Icon name="Trash2" size={14} className="mr-1" />
+                Удалить бота
               </Button>
             </div>
           </Card>

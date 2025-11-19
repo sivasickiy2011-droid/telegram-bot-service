@@ -214,6 +214,35 @@ const Index = () => {
     }
   };
 
+  const handleDeleteBot = async (botId: string) => {
+    try {
+      const response = await fetch(`https://functions.poehali.dev/fee936e7-7794-4f0a-b8f3-73e64570ada5`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bot_id: botId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete bot');
+      }
+
+      toast({
+        title: 'Бот удален',
+        description: 'Бот успешно удален из системы',
+      });
+
+      loadUserBots(currentUser.id);
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить бота',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('telegram_user');
     setCurrentUser(null);
@@ -326,6 +355,7 @@ const Index = () => {
                 setNewBotLogic={setNewBotLogic}
                 setNewBotTemplate={setNewBotTemplate}
                 handleCreateBot={handleCreateBot}
+                handleDeleteBot={handleDeleteBot}
                 getStatusColor={getStatusColor}
                 currentUser={currentUser}
               />

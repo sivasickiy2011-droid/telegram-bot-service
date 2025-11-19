@@ -201,6 +201,51 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'isBase64Encoded': False
         }
     
+    if method == 'DELETE':
+        body_data = json.loads(event.get('body', '{}'))
+        bot_id = body_data.get('bot_id')
+        
+        if not bot_id:
+            conn.close()
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'error': 'bot_id is required'}),
+                'isBase64Encoded': False
+            }
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        query = f"DELETE FROM bots WHERE id = {bot_id} RETURNING *"
+        cursor.execute(query)
+        deleted_bot = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        if not deleted_bot:
+            return {
+                'statusCode': 404,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'error': 'Bot not found'}),
+                'isBase64Encoded': False
+            }
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({'message': 'Bot deleted successfully'}),
+            'isBase64Encoded': False
+        }
+    
     conn.close()
     return {
         'statusCode': 405,

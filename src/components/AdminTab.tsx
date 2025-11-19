@@ -53,6 +53,19 @@ const AdminTab = ({ getStatusColor }: AdminTabProps) => {
         <h2 className="text-3xl font-bold">Админ-панель</h2>
         <p className="text-muted-foreground mt-1">Управление пользователями и оплатами</p>
       </div>
+      
+      <Card className="p-4 bg-blue-500/10 border-blue-500/20">
+        <div className="flex items-start gap-3">
+          <Icon name="Info" size={20} className="text-blue-500 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-medium mb-1 text-blue-600 dark:text-blue-400">Активация ботов</p>
+            <p className="text-muted-foreground">
+              После одобрения модерацией, боты требуют ручной активации на сервере. 
+              Для запуска бота обратитесь к системному администратору с данными: ID бота, токен, логика работы.
+            </p>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="p-6 glass-card">
