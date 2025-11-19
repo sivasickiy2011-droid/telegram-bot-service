@@ -99,9 +99,6 @@ const PaymentTest = () => {
                   </p>
                   <p>Terminal_id: <code className="bg-muted px-1 py-0.5 rounded">1763535470794DEMO</code></p>
                   <p>Password: <code className="bg-muted px-1 py-0.5 rounded">CZq2*qpknmH5efA*</code></p>
-                  <p className="mt-2 text-green-600 dark:text-green-400">
-                    ✅ Использует тестовый API: <code className="bg-muted px-1 py-0.5 rounded">rest-api-test.tinkoff.ru</code>
-                  </p>
                 </div>
               </div>
             </Card>

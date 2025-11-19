@@ -88,8 +88,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         import urllib.request
         import urllib.error
         
-        is_test = 'DEMO' in terminal_key
-        url = 'https://rest-api-test.tinkoff.ru/v2/Init' if is_test else 'https://securepay.tinkoff.ru/v2/Init'
+        url = 'https://securepay.tinkoff.ru/v2/Init'
         
         headers = {
             'Content-Type': 'application/json',
