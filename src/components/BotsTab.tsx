@@ -55,6 +55,7 @@ interface BotsTabProps {
   handleDeleteBot: (botId: string) => void;
   getStatusColor: (status: string) => string;
   currentUser?: any;
+  onBotsUpdated?: () => void;
 }
 
 const BotsTab = ({
@@ -88,6 +89,7 @@ const BotsTab = ({
   handleDeleteBot,
   getStatusColor,
   currentUser,
+  onBotsUpdated,
 }: BotsTabProps) => {
   const isAdmin = currentUser?.role === 'admin';
   const canCreateBot = isAdmin || bots.length < 1;
@@ -176,6 +178,8 @@ const BotsTab = ({
       if (editTbankPassword) bodyData.tbank_password = editTbankPassword;
       if (editVipPrice) bodyData.vip_price = editVipPrice;
       
+      console.log('Saving bot settings:', bodyData);
+      
       const response = await fetch('https://functions.poehali.dev/fee936e7-7794-4f0a-b8f3-73e64570ada5', {
         method: 'PUT',
         headers: {
@@ -190,6 +194,9 @@ const BotsTab = ({
           description: 'Все изменения успешно применены'
         });
         setSettingsOpen(false);
+        if (onBotsUpdated) {
+          onBotsUpdated();
+        }
       } else {
         const data = await response.json();
         toast({

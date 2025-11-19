@@ -112,6 +112,11 @@ const Index = () => {
         qr_paid_count: bot.qr_paid_count,
         qr_rotation_value: bot.qr_rotation_value,
         qr_rotation_unit: bot.qr_rotation_unit,
+        button_texts: bot.button_texts,
+        message_texts: bot.message_texts,
+        tbank_terminal_key: bot.tbank_terminal_key,
+        tbank_password: bot.tbank_password,
+        vip_price: bot.vip_price,
       })));
     } catch (error) {
       console.error('Failed to load bots:', error);
@@ -451,6 +456,7 @@ const Index = () => {
                 handleDeleteBot={handleDeleteBot}
                 getStatusColor={getStatusColor}
                 currentUser={currentUser}
+                onBotsUpdated={() => loadUserBots(currentUser?.id)}
               />
             </TabsContent>
 
