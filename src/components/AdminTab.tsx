@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import UserBotsDialog from '@/components/UserBotsDialog';
 import {
   Table,
   TableBody,
@@ -31,6 +32,8 @@ interface AdminTabProps {
 const AdminTab = ({ getStatusColor }: AdminTabProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [botsDialogOpen, setBotsDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -47,6 +50,11 @@ const AdminTab = ({ getStatusColor }: AdminTabProps) => {
 
     fetchUsers();
   }, []);
+
+  const handleViewBots = (user: User) => {
+    setSelectedUser(user);
+    setBotsDialogOpen(true);
+  };
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -155,11 +163,13 @@ const AdminTab = ({ getStatusColor }: AdminTabProps) => {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" title="Просмотр">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Просмотр ботов"
+                        onClick={() => handleViewBots(user)}
+                      >
                         <Icon name="Eye" size={14} />
-                      </Button>
-                      <Button variant="ghost" size="sm" title="Редактировать">
-                        <Icon name="Edit" size={14} />
                       </Button>
                     </div>
                   </TableCell>
@@ -169,6 +179,12 @@ const AdminTab = ({ getStatusColor }: AdminTabProps) => {
           </TableBody>
         </Table>
       </Card>
+
+      <UserBotsDialog
+        open={botsDialogOpen}
+        onOpenChange={setBotsDialogOpen}
+        user={selectedUser}
+      />
     </div>
   );
 };
