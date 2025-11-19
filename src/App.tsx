@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import AdminLogin from "./pages/AdminLogin";
 import Payment from "./pages/Payment";
 import PaymentTest from "./pages/PaymentTest";
+import WarehouseBooking from "./pages/WarehouseBooking";
+import WarehouseBotDemo from "./pages/WarehouseBotDemo";
 import Terms from "./pages/Terms";
 import CookiePolicy from "./pages/CookiePolicy";
 import NotFound from "./pages/NotFound";
@@ -25,6 +27,8 @@ const App = () => (
           <Route path="/admin" element={<AdminLogin />} />
           <Route path="/payment" element={<Payment />} />
           <Route path="/payment-test" element={<PaymentTest />} />
+          <Route path="/warehouse" element={<WarehouseBooking />} />
+          <Route path="/warehouse-demo" element={<WarehouseBotDemo />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

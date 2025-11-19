@@ -1,0 +1,45 @@
+{
+  "tests": [
+    {
+      "name": "Get bookings list",
+      "method": "GET",
+      "path": "/?action=list&status=active",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get available slots",
+      "method": "GET",
+      "path": "/?action=available&date=2025-12-01&bot_id=1",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create booking",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "telegram_user_id": 123456,
+        "telegram_username": "testuser",
+        "booking_date": "2025-12-15",
+        "booking_time": "10:00",
+        "user_phone": "+79001234567",
+        "user_company": "Test Company",
+        "vehicle_type": "Газель",
+        "cargo_description": "Тестовый груз",
+        "bot_id": 1
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

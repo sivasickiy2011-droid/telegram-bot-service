@@ -1,4 +1,5 @@
 {
+  "warehouse-bookings": "https://functions.poehali.dev/e51fcc06-65c7-473d-a340-2d67fea6ea2d",
   "create-payment": "https://functions.poehali.dev/99bbc805-8eab-41cb-89c3-b0dd02989907",
   "gpt-bot": "https://functions.poehali.dev/086851b3-a690-43f5-b2e0-d9397ab20ff2",
   "sync-bot-stats": "https://functions.poehali.dev/c76b9661-95e2-441d-ab96-0972bb18a478",
