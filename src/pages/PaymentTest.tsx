@@ -17,7 +17,7 @@ const PaymentTest = () => {
   const [terminalKey, setTerminalKey] = useState('1763535470794DEMO');
   const [password, setPassword] = useState('CZq2*qpknmH5efA*');
   const [amount, setAmount] = useState(100);
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'sbp'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'sbp' | 'tpay'>('card');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +158,12 @@ const PaymentTest = () => {
                         СБП (sbp)
                       </div>
                     </SelectItem>
+                    <SelectItem value="tpay">
+                      <div className="flex items-center gap-2">
+                        <Icon name="Wallet" size={16} />
+                        TinkoffPay (tpay)
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -281,6 +287,37 @@ const PaymentTest = () => {
                     />
                     <p className="text-xs text-muted-foreground mt-2">
                       Payment ID: {result.payment_id}
+                    </p>
+                  </div>
+                )}
+
+                {paymentMethod === 'tpay' && result.payment_url && (
+                  <div className="space-y-2">
+                    <Label>Ссылка TinkoffPay:</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={result.payment_url}
+                        readOnly
+                        className="font-mono text-xs"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => navigator.clipboard.writeText(result.payment_url)}
+                        title="Скопировать"
+                      >
+                        <Icon name="Copy" size={16} />
+                      </Button>
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={() => window.open(result.payment_url, '_blank')}
+                    >
+                      <Icon name="ExternalLink" size={16} className="mr-2" />
+                      Открыть TinkoffPay
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Payment ID: {result.payment_id} | Version: {result.version}
                     </p>
                   </div>
                 )}

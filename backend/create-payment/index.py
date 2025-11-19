@@ -112,6 +112,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 })
             }
         
+        elif payment_method == 'tpay':
+            tpay_data = create_tpay_payment(
+                terminal_key, password, amount, order_id, description
+            )
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'success': True,
+                    'payment_method': 'tpay',
+                    'payment_url': tpay_data['payment_url'],
+                    'payment_id': tpay_data['payment_id'],
+                    'version': tpay_data['version']
+                })
+            }
+        
         elif payment_method == 'gift':
             gift_url = body_data.get('gift_url', '')
             if not gift_url:
@@ -267,6 +286,77 @@ def create_sbp_payment(terminal_key: str, password: str, amount: int,
                     }
             else:
                 raise Exception(data.get('Message', 'SBP payment creation failed'))
+    
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode('utf-8')
+        raise Exception(f'T-Bank API error: {e.code} - {error_body}')
+
+
+def create_tpay_payment(terminal_key: str, password: str, amount: int, 
+                        order_id: str, description: str) -> Dict[str, str]:
+    '''Create TinkoffPay payment via T-Bank API'''
+    is_test = 'DEMO' in terminal_key
+    api_url = 'https://rest-api-test.tinkoff.ru/v2/Init' if is_test else 'https://securepay.tinkoff.ru/v2/Init'
+    
+    payload = {
+        'TerminalKey': terminal_key,
+        'Amount': amount,
+        'OrderId': order_id,
+        'Description': description
+    }
+    
+    token = generate_token(payload, password)
+    payload['Token'] = token
+    
+    headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'TeleBot-Platform/1.0',
+        'Accept': 'application/json'
+    }
+    
+    req = urllib.request.Request(
+        api_url,
+        data=json.dumps(payload).encode('utf-8'),
+        headers=headers,
+        method='POST'
+    )
+    
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            
+            if data.get('Success'):
+                payment_id = data.get('PaymentId', '')
+                
+                base_url = 'https://rest-api-test.tinkoff.ru' if is_test else 'https://securepay.tinkoff.ru'
+                link_url = f'{base_url}/v2/TinkoffPay/transactions/{payment_id}/versions/3.0/link'
+                
+                link_payload = {
+                    'TerminalKey': terminal_key
+                }
+                link_token = generate_token(link_payload, password)
+                link_payload['Token'] = link_token
+                
+                link_req = urllib.request.Request(
+                    link_url,
+                    data=json.dumps(link_payload).encode('utf-8'),
+                    headers=headers,
+                    method='POST'
+                )
+                
+                with urllib.request.urlopen(link_req, timeout=30) as link_response:
+                    link_data = json.loads(link_response.read().decode('utf-8'))
+                    
+                    if link_data.get('Success'):
+                        return {
+                            'payment_url': link_data.get('Params', {}).get('Link', ''),
+                            'payment_id': payment_id,
+                            'version': '3.0'
+                        }
+                    else:
+                        raise Exception(link_data.get('Message', 'TinkoffPay link creation failed'))
+            else:
+                raise Exception(data.get('Message', 'Payment creation failed'))
     
     except urllib.error.HTTPError as e:
         error_body = e.read().decode('utf-8')
