@@ -371,7 +371,7 @@ def handle_check_payment(bot_data: Dict, chat_id: int, telegram_user_id: int):
                     
                     # Получаем свободный VIP QR-ключ
                     qr_query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
-                                  WHERE bot_id = {bot_data['id']} AND code_type = 'paid' AND is_used = false 
+                                  WHERE bot_id = {bot_data['id']} AND code_type = 'vip' AND is_used = false 
                                   ORDER BY code_number LIMIT 1'''
                     cursor.execute(qr_query)
                     qr_code = cursor.fetchone()
