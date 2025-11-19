@@ -27,7 +27,8 @@
         "telegram_token": "123:ABC",
         "template": "keys",
         "description": "Test bot for QR keys distribution",
-        "logic": "Bot provides free and VIP keys to users"
+        "logic": "Bot provides free and VIP keys to users",
+        "unique_number": "123456"
       },
       "expectedStatus": 201,
       "expectedBody": {

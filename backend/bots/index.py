@@ -165,6 +165,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         status = body_data.get('status')
         payment_url = body_data.get('payment_url')
         payment_enabled = body_data.get('payment_enabled')
+        button_texts = body_data.get('button_texts')
+        message_texts = body_data.get('message_texts')
+        tbank_terminal_key = body_data.get('tbank_terminal_key')
+        tbank_password = body_data.get('tbank_password')
+        vip_price = body_data.get('vip_price')
         
         if not bot_id:
             conn.close()
@@ -191,6 +196,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         if payment_enabled is not None:
             update_parts.append(f"payment_enabled = {payment_enabled}")
+        
+        if button_texts is not None:
+            button_texts_json = json.dumps(button_texts).replace("'", "''")
+            update_parts.append(f"button_texts = '{button_texts_json}'::jsonb")
+        
+        if message_texts is not None:
+            message_texts_json = json.dumps(message_texts).replace("'", "''")
+            update_parts.append(f"message_texts = '{message_texts_json}'::jsonb")
+        
+        if tbank_terminal_key is not None:
+            tbank_terminal_key_escaped = tbank_terminal_key.replace("'", "''")
+            update_parts.append(f"tbank_terminal_key = '{tbank_terminal_key_escaped}'")
+        
+        if tbank_password is not None:
+            tbank_password_escaped = tbank_password.replace("'", "''")
+            update_parts.append(f"tbank_password = '{tbank_password_escaped}'")
+        
+        if vip_price is not None:
+            update_parts.append(f"vip_price = {vip_price}")
         
         if not update_parts:
             conn.close()
