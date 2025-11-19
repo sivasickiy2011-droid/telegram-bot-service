@@ -237,6 +237,51 @@ const BotsTab = ({
     }
   };
 
+  const handleToggleStatus = async (botId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    const actionText = newStatus === 'active' ? 'включить' : 'отключить';
+    
+    if (!confirm(`Вы уверены, что хотите ${actionText} бота?`)) {
+      return;
+    }
+    
+    try {
+      const response = await fetch('https://functions.poehali.dev/fee936e7-7794-4f0a-b8f3-73e64570ada5', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          bot_id: botId,
+          status: newStatus
+        })
+      });
+      
+      if (response.ok) {
+        toast({
+          title: 'Статус изменен',
+          description: `Бот успешно ${newStatus === 'active' ? 'включен' : 'отключен'}`
+        });
+        if (onBotsUpdated) {
+          onBotsUpdated();
+        }
+      } else {
+        const data = await response.json();
+        toast({
+          title: 'Ошибка',
+          description: data.error || 'Не удалось изменить статус бота',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось изменить статус бота',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const getBotTypeLabel = (type: string) => {
     const types: Record<string, string> = {
       keys: '🔑 QR-ключи + VIP-доступ',
@@ -317,6 +362,7 @@ const BotsTab = ({
             onSettings={openSettings}
             onStats={openStats}
             onDelete={handleDeleteBot}
+            onToggleStatus={handleToggleStatus}
           />
         ))}
       </div>

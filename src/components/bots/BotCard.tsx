@@ -27,6 +27,7 @@ interface BotCardProps {
   onSettings: (bot: Bot) => void;
   onStats: (bot: Bot) => void;
   onDelete: (botId: string) => void;
+  onToggleStatus: (botId: string, currentStatus: string) => void;
 }
 
 const BotCard = ({ 
@@ -36,7 +37,8 @@ const BotCard = ({
   getBotTypeLabel,
   onSettings, 
   onStats, 
-  onDelete 
+  onDelete,
+  onToggleStatus
 }: BotCardProps) => {
   return (
     <Card
@@ -64,7 +66,16 @@ const BotCard = ({
             Отклонен
           </div>
         ) : (
-          <div className={`w-3 h-3 rounded-full ${getStatusColor(bot.status)}`} />
+          <div className="flex items-center gap-2">
+            <Icon 
+              name="Zap" 
+              size={16} 
+              className={`${bot.status === 'active' ? 'text-green-500' : 'text-gray-400'} ${bot.status === 'active' ? 'animate-pulse' : ''}`}
+            />
+            <span className="text-xs text-muted-foreground">
+              {bot.status === 'active' ? 'Активен' : 'Отключен'}
+            </span>
+          </div>
         )}
       </div>
       <div className="space-y-3 mb-4">
@@ -149,6 +160,18 @@ const BotCard = ({
             Статистика
           </Button>
         </div>
+        
+        {bot.moderationStatus === 'approved' && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className={`w-full ${bot.status === 'active' ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-500/10' : 'text-green-500 hover:text-green-600 hover:bg-green-500/10'}`}
+            onClick={() => onToggleStatus(bot.id, bot.status)}
+          >
+            <Icon name={bot.status === 'active' ? 'Power' : 'PowerOff'} size={14} className="mr-1" />
+            {bot.status === 'active' ? 'Отключить бота' : 'Включить бота'}
+          </Button>
+        )}
         
         <Button 
           variant="outline" 
