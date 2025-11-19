@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройка webhook для всех активных ботов</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .bot-list {
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .bot-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .bot-item h3 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+        .bot-item p {
+            color: #666;
+            font-size: 13px;
+            margin: 3px 0;
+        }
+        .bot-item .status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+        .bot-item .status.pending {
+            background: #ffc107;
+            color: #856404;
+        }
+        .bot-item .status.success {
+            background: #28a745;
+            color: white;
+        }
+        .bot-item .status.error {
+            background: #dc3545;
+            color: white;
+        }
+        .setup-button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: transform 0.2s;
+        }
+        .setup-button:hover {
+            transform: translateY(-2px);
+        }
+        .setup-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .status-message.success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+            display: block;
+        }
+        .status-message.error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+            display: block;
+        }
+        .status-message.info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+            display: block;
+        }
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Настройка Webhook для ботов</h1>
+        <p class="subtitle">Автоматическая настройка webhook для всех активных ботов</p>
+
+        <div id="botList" class="bot-list"></div>
+
+        <button class="setup-button" onclick="setupAllWebhooks()" id="setupBtn">
+            Настроить webhook для всех ботов
+        </button>
+
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <script>
+        let bots = [];
+
+        async function loadBots() {
+            try {
+                const response = await fetch('https://functions.poehali.dev/219980d4-f0af-4bfd-a046-421e59d66113');
+                const data = await response.json();
+                bots = data.bots.filter(bot => bot.status === 'active');
+                
+                const botList = document.getElementById('botList');
+                
+                if (bots.length === 0) {
+                    botList.innerHTML = '<p style="text-align: center; color: #666;">Нет активных ботов для настройки</p>';
+                    document.getElementById('setupBtn').disabled = true;
+                    return;
+                }
+                
+                botList.innerHTML = bots.map(bot => `
+                    <div class="bot-item" id="bot-${bot.id}">
+                        <h3>${bot.name}</h3>
+                        <p>ID: ${bot.id} | Владелец: ${bot.owner_username}</p>
+                        <p>Тип: ${bot.template}</p>
+                        <span class="status pending" id="status-${bot.id}">⏳ Ожидает настройки</span>
+                    </div>
+                `).join('');
+            } catch (error) {
+                showStatus('error', 'Ошибка загрузки списка ботов: ' + error.message);
+            }
+        }
+
+        async function setupAllWebhooks() {
+            const btn = document.getElementById('setupBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> Настройка webhook...';
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const bot of bots) {
+                try {
+                    const statusEl = document.getElementById(`status-${bot.id}`);
+                    statusEl.className = 'status pending';
+                    statusEl.textContent = '🔄 Настройка...';
+
+                    const response = await fetch('https://functions.poehali.dev/5de84ef3-0564-49a9-95a1-05f3de4ba313', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            bot_id: bot.id,
+                            action: 'setup'
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.telegram_result?.ok) {
+                        statusEl.className = 'status success';
+                        statusEl.textContent = '✅ Webhook настроен';
+                        successCount++;
+                    } else {
+                        throw new Error(data.telegram_result?.description || 'Неизвестная ошибка');
+                    }
+                } catch (error) {
+                    const statusEl = document.getElementById(`status-${bot.id}`);
+                    statusEl.className = 'status error';
+                    statusEl.textContent = '❌ Ошибка: ' + error.message;
+                    errorCount++;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Настроить webhook для всех ботов';
+
+            if (errorCount === 0) {
+                showStatus('success', `✅ Все webhook настроены успешно! (${successCount} ботов)`);
+            } else {
+                showStatus('error', `⚠️ Настройка завершена с ошибками. Успешно: ${successCount}, ошибок: ${errorCount}`);
+            }
+        }
+
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.className = `status-message ${type}`;
+            statusDiv.textContent = message;
+        }
+
+        loadBots();
+    </script>
+</body>
+</html>

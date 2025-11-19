@@ -54,6 +54,11 @@ const BotActivationTab = ({ currentUser }: BotActivationTabProps) => {
       setProcessing(botId);
       
       if (action === 'activate') {
+        toast({
+          title: 'Активация бота...',
+          description: 'Шаг 1/3: Генерация QR-кодов',
+        });
+
         const qrResponse = await fetch('https://functions.poehali.dev/11492c68-8058-4d7e-a8a8-f6f82614e69e', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -67,6 +72,11 @@ const BotActivationTab = ({ currentUser }: BotActivationTabProps) => {
         if (!qrResponse.ok) {
           console.warn('QR codes generation warning:', qrData);
         }
+
+        toast({
+          title: 'Активация бота...',
+          description: 'Шаг 2/3: Настройка webhook',
+        });
         
         const webhookResponse = await fetch('https://functions.poehali.dev/5de84ef3-0564-49a9-95a1-05f3de4ba313', {
           method: 'POST',
@@ -81,6 +91,24 @@ const BotActivationTab = ({ currentUser }: BotActivationTabProps) => {
         
         if (!webhookResponse.ok || !webhookData.telegram_result?.ok) {
           throw new Error('Не удалось настроить webhook для бота');
+        }
+
+        toast({
+          title: 'Активация бота...',
+          description: 'Шаг 3/3: Обновление статуса',
+        });
+      } else {
+        const webhookResponse = await fetch('https://functions.poehali.dev/5de84ef3-0564-49a9-95a1-05f3de4ba313', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bot_id: botId,
+            action: 'delete',
+          }),
+        });
+
+        if (!webhookResponse.ok) {
+          console.warn('Failed to delete webhook:', await webhookResponse.json());
         }
       }
       
@@ -98,10 +126,10 @@ const BotActivationTab = ({ currentUser }: BotActivationTabProps) => {
 
       if (response.ok) {
         toast({
-          title: action === 'activate' ? '🚀 Бот активирован!' : 'Бот деактивирован',
+          title: action === 'activate' ? '🚀 Бот активирован!' : '⏸️ Бот деактивирован',
           description: action === 'activate' 
-            ? 'Бот запущен и готов принимать сообщения в Telegram' 
-            : data.message,
+            ? 'Бот запущен, webhook настроен, готов к приёму сообщений' 
+            : 'Бот остановлен, webhook удалён',
         });
         loadApprovedBots();
       } else {

@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "name": "Trigger automatic rotation",
+      "method": "POST",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "scheduler_status": "string",
+        "rotation_result": "object"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

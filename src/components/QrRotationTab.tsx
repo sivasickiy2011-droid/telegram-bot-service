@@ -175,6 +175,45 @@ const QrRotationTab = ({ currentUser }: QrRotationTabProps) => {
         </Button>
       </div>
 
+      <Card className="p-6 glass-card bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-purple-500/20">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl gradient-purple flex items-center justify-center flex-shrink-0">
+            <Icon name="Clock" size={24} className="text-white" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-lg mb-2">⚙️ Настройка автоматической ротации</h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              Для автоматического запуска ротации по расписанию используйте cron-сервис
+            </p>
+            <div className="flex gap-2">
+              <a
+                href="https://cron-job.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-white/50 hover:bg-white/80 border border-border/50 text-sm font-medium transition-colors"
+              >
+                <Icon name="ExternalLink" size={14} className="mr-2" />
+                cron-job.org
+              </a>
+              <a
+                href="https://www.easycron.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 rounded-lg bg-white/50 hover:bg-white/80 border border-border/50 text-sm font-medium transition-colors"
+              >
+                <Icon name="ExternalLink" size={14} className="mr-2" />
+                EasyCron
+              </a>
+            </div>
+            <div className="mt-3 p-3 rounded-lg bg-background/50 border border-border/50">
+              <p className="text-xs text-muted-foreground mb-2">URL для cron-задачи (POST):</p>
+              <code className="text-xs font-mono break-all">https://functions.poehali.dev/ebf114aa-c461-46e1-b455-d28991013d12</code>
+              <p className="text-xs text-muted-foreground mt-2">Рекомендуемое расписание: <code>0 */6 * * *</code> (каждые 6 часов)</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {bots.length === 0 ? (
         <Card className="p-12 text-center">
           <Icon name="Calendar" size={48} className="mx-auto mb-4 text-muted-foreground" />
