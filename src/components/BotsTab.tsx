@@ -134,7 +134,13 @@ const BotsTab = ({
     setEditPaymentUrl(bot.payment_url || '');
     setEditPaymentEnabled(bot.payment_enabled || false);
     setEditButtonTexts(bot.button_texts || null);
-    setEditMessageTexts(bot.message_texts || null);
+    
+    const messageTexts = bot.message_texts || {};
+    if (bot.secret_shop_text && !messageTexts.secret_shop) {
+      messageTexts.secret_shop = bot.secret_shop_text;
+    }
+    setEditMessageTexts(messageTexts);
+    
     setEditTbankTerminalKey(bot.tbank_terminal_key || '');
     setEditTbankPassword(bot.tbank_password || '');
     setEditVipPrice(bot.vip_price || 500);

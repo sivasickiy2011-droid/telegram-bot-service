@@ -217,6 +217,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if message_texts is not None:
             message_texts_json = json.dumps(message_texts).replace("'", "''")
             update_parts.append(f"message_texts = '{message_texts_json}'::jsonb")
+            
+            if 'secret_shop' in message_texts:
+                secret_shop_from_message_texts = message_texts['secret_shop'].replace("'", "''")
+                update_parts.append(f"secret_shop_text = '{secret_shop_from_message_texts}'")
         
         if tbank_terminal_key is not None:
             tbank_terminal_key_escaped = tbank_terminal_key.replace("'", "''")
