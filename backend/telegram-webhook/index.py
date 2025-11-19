@@ -7,6 +7,7 @@ import qrcode
 from io import BytesIO
 import base64
 import requests
+from PIL import Image, ImageDraw, ImageFont
 
 def get_db_connection():
     '''Создает подключение к базе данных'''
@@ -190,15 +191,41 @@ def get_free_qr_key(bot_id: int, user_id: int, telegram_user_id: int) -> Optiona
     conn.close()
     return dict(qr_code) if qr_code else None
 
-def generate_qr_base64(code_number: int) -> str:
-    '''Генерирует QR-код как base64 строку'''
+def generate_qr_base64(code_number: int, is_vip: bool = False) -> str:
+    '''Генерирует QR-код как base64 строку (с VIP обложкой если нужно)'''
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(f'POLYTOPE_KEY_{code_number}')
     qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+    
+    if not is_vip:
+        bio = BytesIO()
+        qr_img.save(bio, 'PNG')
+        bio.seek(0)
+        return base64.b64encode(bio.read()).decode()
+    
+    qr_size = qr_img.size[0]
+    cover_width = qr_size
+    cover_height = int(qr_size * 1.4)
+    
+    cover = Image.new('RGB', (cover_width, cover_height), color='#E8F5E9')
+    draw = ImageDraw.Draw(cover, 'RGBA')
+    
+    watermark_color = (129, 199, 132, 40)
+    
+    for i in range(-2, 6):
+        y_pos = i * 80
+        draw.text((20, y_pos), 'VIP', fill=watermark_color, font=None)
+        draw.text((cover_width - 80, y_pos + 40), 'VIP', fill=watermark_color, font=None)
+    
+    title_y = 20
+    draw.text((cover_width // 2 - 50, title_y), '💎 VIP ACCESS', fill='#2E7D32', font=None)
+    
+    qr_y = 80
+    cover.paste(qr_img, (0, qr_y))
     
     bio = BytesIO()
-    img.save(bio, 'PNG')
+    cover.save(bio, 'PNG')
     bio.seek(0)
     return base64.b64encode(bio.read()).decode()
 
@@ -299,7 +326,7 @@ def handle_free_key(bot_data: Dict, message: Dict):
         return
     
     if qr_key:
-        qr_base64 = generate_qr_base64(qr_key['code_number'])
+        qr_base64 = generate_qr_base64(qr_key['code_number'], is_vip=False)
         
         caption = (
             f"✅ Ваш бесплатный ключ №{qr_key['code_number']}\n\n"
@@ -429,9 +456,12 @@ def handle_admin_free_vip(bot_data: Dict, message: Dict):
         cursor.close()
         conn.close()
         
-        qr_base64 = generate_qr_base64(qr_code['code_number'])
+        qr_base64 = generate_qr_base64(qr_code['code_number'], is_vip=True)
+        
+        vip_message = bot_data.get('vip_purchase_message', 'VIP-ключ открывает доступ к эксклюзивным материалам и привилегиям.')
         
         caption = (
+            f"{vip_message}\n\n"
             f"👑 Ваш VIP QR-код №{qr_code['code_number']} (Админ)\n\n"
             f"Покажите этот код на кассе для получения доступа к VIP-товарам"
         )
@@ -639,9 +669,12 @@ def handle_check_payment(bot_data: Dict, chat_id: int, telegram_user_id: int):
                         conn.commit()
                         
                         # Генерируем QR-код
-                        qr_base64 = generate_qr_base64(qr_code['code_number'])
+                        qr_base64 = generate_qr_base64(qr_code['code_number'], is_vip=True)
+                        
+                        vip_message = bot_data.get('vip_purchase_message', 'VIP-ключ открывает доступ к эксклюзивным материалам и привилегиям.')
                         
                         caption = (
+                            f"{vip_message}\n\n"
                             f"✅ Оплата подтверждена! Спасибо за покупку!\n\n"
                             f"💎 Ваш VIP QR-код №{qr_code['code_number']}\n\n"
                             f"Покажите этот код на кассе для получения доступа к VIP-товарам"
