@@ -40,6 +40,100 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     conn = psycopg2.connect(database_url)
     
+    if method == 'PUT':
+        body_data = json.loads(event.get('body', '{}'))
+        telegram_id = body_data.get('telegram_id')
+        full_name = body_data.get('full_name')
+        phone = body_data.get('phone')
+        email = body_data.get('email')
+        entity_type = body_data.get('entity_type')
+        legal_details = body_data.get('legal_details')
+        agreed_to_terms = body_data.get('agreed_to_terms')
+        agreed_to_cookies = body_data.get('agreed_to_cookies')
+        registration_completed = body_data.get('registration_completed')
+        
+        if not telegram_id:
+            conn.close()
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'error': 'telegram_id is required'}),
+                'isBase64Encoded': False
+            }
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        update_parts = []
+        if full_name is not None:
+            full_name_escaped = full_name.replace("'", "''")
+            update_parts.append(f"full_name = '{full_name_escaped}'")
+        if phone is not None:
+            phone_escaped = phone.replace("'", "''")
+            update_parts.append(f"phone = '{phone_escaped}'")
+        if email is not None:
+            email_escaped = email.replace("'", "''")
+            update_parts.append(f"email = '{email_escaped}'")
+        if entity_type is not None:
+            entity_type_escaped = entity_type.replace("'", "''")
+            update_parts.append(f"entity_type = '{entity_type_escaped}'")
+        if legal_details is not None:
+            legal_details_escaped = legal_details.replace("'", "''")
+            update_parts.append(f"legal_details = '{legal_details_escaped}'")
+        if agreed_to_terms is not None:
+            update_parts.append(f"agreed_to_terms = {agreed_to_terms}")
+        if agreed_to_cookies is not None:
+            update_parts.append(f"agreed_to_cookies = {agreed_to_cookies}")
+        if registration_completed is not None:
+            update_parts.append(f"registration_completed = {registration_completed}")
+        
+        if update_parts:
+            update_parts.append("updated_at = CURRENT_TIMESTAMP")
+            update_clause = ", ".join(update_parts)
+            query = f"UPDATE t_p5255237_telegram_bot_service.users SET {update_clause} WHERE telegram_id = {telegram_id} RETURNING *"
+            cursor.execute(query)
+            user = cursor.fetchone()
+            conn.commit()
+            
+            if not user:
+                cursor.close()
+                conn.close()
+                return {
+                    'statusCode': 404,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'User not found'}),
+                    'isBase64Encoded': False
+                }
+            
+            cursor.close()
+            conn.close()
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'user': dict(user)}, default=str),
+                'isBase64Encoded': False
+            }
+        
+        cursor.close()
+        conn.close()
+        return {
+            'statusCode': 400,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({'error': 'No fields to update'}),
+            'isBase64Encoded': False
+        }
+    
     if method == 'POST':
         body_data = json.loads(event.get('body', '{}'))
         telegram_id = body_data.get('telegram_id')

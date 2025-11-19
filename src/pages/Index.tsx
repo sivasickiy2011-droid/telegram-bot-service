@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createOrUpdateUser, getBots, createBot } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import LoginPage from '@/components/LoginPage';
+import RegistrationForm from '@/components/RegistrationForm';
 import DashboardTab from '@/components/DashboardTab';
 import BotsTab from '@/components/BotsTab';
 import AdminTab from '@/components/AdminTab';
@@ -45,6 +46,8 @@ const Index = () => {
   const [isCreatingBot, setIsCreatingBot] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isTelegramApp, setIsTelegramApp] = useState(false);
+  const [needsRegistration, setNeedsRegistration] = useState(false);
+  const [tempTelegramUser, setTempTelegramUser] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -139,6 +142,13 @@ const Index = () => {
       const user = response.user;
       console.log('User logged in:', user);
       console.log('User role:', user.role);
+      console.log('Registration completed:', user.registration_completed);
+      
+      if (user.role !== 'admin' && !user.registration_completed) {
+        setTempTelegramUser(telegramUser);
+        setNeedsRegistration(true);
+        return;
+      }
       
       setCurrentUser(user);
       setIsAuthenticated(true);
@@ -308,6 +318,29 @@ const Index = () => {
         return 'bg-gray-500';
     }
   };
+
+  const handleRegistrationComplete = async (userData: any) => {
+    setCurrentUser(userData);
+    setIsAuthenticated(true);
+    setNeedsRegistration(false);
+    localStorage.setItem('telegram_user', JSON.stringify(userData));
+    
+    toast({
+      title: 'Регистрация завершена',
+      description: `Добро пожаловать, ${userData.first_name}!`,
+    });
+    
+    await loadUserBots(userData.id);
+  };
+
+  if (needsRegistration) {
+    return (
+      <RegistrationForm
+        onComplete={handleRegistrationComplete}
+        telegramUser={tempTelegramUser}
+      />
+    );
+  }
 
   if (!isAuthenticated) {
     return <LoginPage onAuth={handleTelegramAuth} error={authError} />;
