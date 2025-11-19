@@ -84,6 +84,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         template = body_data.get('template', 'keys')
         description = body_data.get('description', '')
         logic = body_data.get('logic', '')
+        unique_number = body_data.get('unique_number', '')
         qr_free_count = body_data.get('qr_free_count', 500)
         qr_paid_count = body_data.get('qr_paid_count', 500)
         qr_rotation_value = body_data.get('qr_rotation_value', 0)
@@ -91,7 +92,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         payment_enabled = body_data.get('payment_enabled', False)
         payment_url = body_data.get('payment_url', '')
         
-        if not user_id or not name or not telegram_token or not description or not logic:
+        if not user_id or not name or not telegram_token or not description or not logic or not unique_number:
             conn.close()
             return {
                 'statusCode': 400,
@@ -99,7 +100,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'error': 'user_id, name, telegram_token, description, and logic are required'}),
+                'body': json.dumps({'error': 'user_id, name, telegram_token, description, logic, and unique_number are required'}),
                 'isBase64Encoded': False
             }
         
@@ -128,15 +129,17 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         template_escaped = template.replace("'", "''")
         description_escaped = description.replace("'", "''")
         logic_escaped = logic.replace("'", "''")
+        unique_number_escaped = unique_number.replace("'", "''")
         qr_rotation_unit_escaped = qr_rotation_unit.replace("'", "''")
         payment_url_escaped = payment_url.replace("'", "''")
         
         query = f'''INSERT INTO t_p5255237_telegram_bot_service.bots 
-               (user_id, name, telegram_token, template, bot_description, bot_logic, 
+               (user_id, name, telegram_token, template, bot_description, bot_logic, unique_number,
                 qr_free_count, qr_paid_count, qr_rotation_value, qr_rotation_unit, 
                 payment_enabled, payment_url, status, moderation_status)
                VALUES ({user_id}, '{name_escaped}', '{token_escaped}', '{template_escaped}', 
-                       '{description_escaped}', '{logic_escaped}', {qr_free_count}, {qr_paid_count}, 
+                       '{description_escaped}', '{logic_escaped}', '{unique_number_escaped}',
+                       {qr_free_count}, {qr_paid_count}, 
                        {qr_rotation_value}, '{qr_rotation_unit_escaped}', {payment_enabled}, 
                        '{payment_url_escaped}', 'inactive', 'pending') 
                RETURNING *'''

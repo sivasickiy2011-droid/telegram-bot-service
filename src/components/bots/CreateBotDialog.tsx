@@ -21,6 +21,7 @@ interface CreateBotDialogProps {
   newBotDescription: string;
   newBotLogic: string;
   newBotTemplate: string;
+  uniqueNumber: string;
   qrFreeCount: number;
   qrPaidCount: number;
   qrRotationValue: number;
@@ -33,6 +34,7 @@ interface CreateBotDialogProps {
   setNewBotDescription: (value: string) => void;
   setNewBotLogic: (value: string) => void;
   setNewBotTemplate: (value: string) => void;
+  setUniqueNumber: (value: string) => void;
   setQrFreeCount: (value: number) => void;
   setQrPaidCount: (value: number) => void;
   setQrRotationValue: (value: number) => void;
@@ -49,6 +51,7 @@ const CreateBotDialog = ({
   newBotDescription,
   newBotLogic,
   newBotTemplate,
+  uniqueNumber,
   qrFreeCount,
   qrPaidCount,
   qrRotationValue,
@@ -61,6 +64,7 @@ const CreateBotDialog = ({
   setNewBotDescription,
   setNewBotLogic,
   setNewBotTemplate,
+  setUniqueNumber,
   setQrFreeCount,
   setQrPaidCount,
   setQrRotationValue,
@@ -116,6 +120,23 @@ const CreateBotDialog = ({
           </div>
           
           <div className="space-y-2">
+            <Label htmlFor="unique-number">Уникальный номер бота (6 цифр)</Label>
+            <Input 
+              id="unique-number" 
+              placeholder="123456" 
+              maxLength={6}
+              value={uniqueNumber}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '');
+                setUniqueNumber(value);
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Используется для идентификации бота в системе
+            </p>
+          </div>
+          
+          <div className="space-y-2">
             <Label htmlFor="bot-template">Тип бота</Label>
             <Select 
               value={newBotTemplate} 
@@ -131,7 +152,7 @@ const CreateBotDialog = ({
                 <SelectValue placeholder="Выберите тип бота" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="keys">🔑 QR-ключи + VIP-доступ (POLYTOPE)</SelectItem>
+                <SelectItem value="keys">🔑 QR-ключи + VIP-доступ</SelectItem>
                 <SelectItem value="shop">🛍️ Интернет-магазин</SelectItem>
                 <SelectItem value="subscription">💎 Подписки и контент</SelectItem>
                 <SelectItem value="support">💬 Поддержка клиентов</SelectItem>

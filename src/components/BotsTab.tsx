@@ -31,6 +31,7 @@ interface BotsTabProps {
   newBotDescription: string;
   newBotLogic: string;
   newBotTemplate: string;
+  uniqueNumber: string;
   qrFreeCount: number;
   qrPaidCount: number;
   qrRotationValue: number;
@@ -43,6 +44,7 @@ interface BotsTabProps {
   setNewBotDescription: (value: string) => void;
   setNewBotLogic: (value: string) => void;
   setNewBotTemplate: (value: string) => void;
+  setUniqueNumber: (value: string) => void;
   setQrFreeCount: (value: number) => void;
   setQrPaidCount: (value: number) => void;
   setQrRotationValue: (value: number) => void;
@@ -62,6 +64,7 @@ const BotsTab = ({
   newBotDescription,
   newBotLogic,
   newBotTemplate,
+  uniqueNumber,
   qrFreeCount,
   qrPaidCount,
   qrRotationValue,
@@ -74,6 +77,7 @@ const BotsTab = ({
   setNewBotDescription,
   setNewBotLogic,
   setNewBotTemplate,
+  setUniqueNumber,
   setQrFreeCount,
   setQrPaidCount,
   setQrRotationValue,
@@ -195,7 +199,6 @@ const BotsTab = ({
       subscription: '💎 Подписки и контент',
       support: '💬 Поддержка клиентов',
       custom: '⚙️ Кастомная логика',
-      POLYTOPE: '🔑 QR-ключи + VIP-доступ',
     };
     return types[type] || type;
   };
@@ -228,6 +231,7 @@ const BotsTab = ({
           newBotDescription={newBotDescription}
           newBotLogic={newBotLogic}
           newBotTemplate={newBotTemplate}
+          uniqueNumber={uniqueNumber}
           qrFreeCount={qrFreeCount}
           qrPaidCount={qrPaidCount}
           qrRotationValue={qrRotationValue}
@@ -240,6 +244,7 @@ const BotsTab = ({
           setNewBotDescription={setNewBotDescription}
           setNewBotLogic={setNewBotLogic}
           setNewBotTemplate={setNewBotTemplate}
+          setUniqueNumber={setUniqueNumber}
           setQrFreeCount={setQrFreeCount}
           setQrPaidCount={setQrPaidCount}
           setQrRotationValue={setQrRotationValue}

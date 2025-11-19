@@ -35,6 +35,7 @@ const Index = () => {
   const [newBotDescription, setNewBotDescription] = useState('');
   const [newBotLogic, setNewBotLogic] = useState('');
   const [newBotTemplate, setNewBotTemplate] = useState('keys');
+  const [uniqueNumber, setUniqueNumber] = useState('');
   const [qrFreeCount, setQrFreeCount] = useState(500);
   const [qrPaidCount, setQrPaidCount] = useState(500);
   const [qrRotationValue, setQrRotationValue] = useState(0);
@@ -183,6 +184,15 @@ const Index = () => {
       return;
     }
 
+    if (!uniqueNumber || uniqueNumber.length !== 6) {
+      toast({
+        title: 'Ошибка',
+        description: 'Укажите уникальный 6-значный номер бота',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const isAdmin = currentUser?.role === 'admin';
     
     if (!isAdmin && bots.length >= 1) {
@@ -203,6 +213,7 @@ const Index = () => {
         template: newBotTemplate,
         description: newBotDescription,
         logic: newBotLogic,
+        unique_number: uniqueNumber,
         qr_free_count: qrFreeCount,
         qr_paid_count: qrPaidCount,
         qr_rotation_value: qrRotationValue,
@@ -220,6 +231,7 @@ const Index = () => {
       setNewBotToken('');
       setNewBotDescription('');
       setNewBotLogic('');
+      setUniqueNumber('');
       setQrFreeCount(500);
       setQrPaidCount(500);
       setQrRotationValue(0);
@@ -382,6 +394,7 @@ const Index = () => {
                 newBotDescription={newBotDescription}
                 newBotLogic={newBotLogic}
                 newBotTemplate={newBotTemplate}
+                uniqueNumber={uniqueNumber}
                 qrFreeCount={qrFreeCount}
                 qrPaidCount={qrPaidCount}
                 qrRotationValue={qrRotationValue}
@@ -394,6 +407,7 @@ const Index = () => {
                 setNewBotDescription={setNewBotDescription}
                 setNewBotLogic={setNewBotLogic}
                 setNewBotTemplate={setNewBotTemplate}
+                setUniqueNumber={setUniqueNumber}
                 setQrFreeCount={setQrFreeCount}
                 setQrPaidCount={setQrPaidCount}
                 setQrRotationValue={setQrRotationValue}
