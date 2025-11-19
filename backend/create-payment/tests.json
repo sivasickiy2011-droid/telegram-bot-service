@@ -1,0 +1,42 @@
+{
+  "tests": [
+    {
+      "name": "Test missing terminal key",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "amount": 10000,
+        "order_id": "test_123",
+        "payment_method": "card"
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "Terminal key and password are required"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test invalid amount",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "terminal_key": "test",
+        "password": "test",
+        "amount": 0,
+        "order_id": "test_123",
+        "payment_method": "card"
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "Amount must be greater than 0"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test OPTIONS for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}

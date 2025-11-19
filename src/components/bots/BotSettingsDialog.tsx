@@ -88,6 +88,8 @@ const BotSettingsDialog = ({
   const [activeTab, setActiveTab] = useState('payment');
   const [testingPayment, setTestingPayment] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean; message: string; details?: any} | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'sbp' | 'gift'>('card');
+  const [giftPaymentUrl, setGiftPaymentUrl] = useState('');
   
   const handleTestPayment = async () => {
     if (!editTbankTerminalKey || !editTbankPassword) {
@@ -195,37 +197,147 @@ const BotSettingsDialog = ({
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="tbank-terminal-key">
-                      T-Bank Terminal Key
-                    </Label>
-                    <Input
-                      id="tbank-terminal-key"
-                      type="text"
-                      placeholder="ваш_terminal_key"
-                      value={editTbankTerminalKey}
-                      onChange={(e) => setEditTbankTerminalKey(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Получите в личном кабинете T-Bank
-                    </p>
+                  <div className="space-y-3">
+                    <Label>Метод оплаты</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button
+                        type="button"
+                        variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setPaymentMethod('card')}
+                        className="flex flex-col h-auto py-3"
+                      >
+                        <Icon name="CreditCard" size={20} className="mb-1" />
+                        <span className="text-xs">Карта</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={paymentMethod === 'sbp' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setPaymentMethod('sbp')}
+                        className="flex flex-col h-auto py-3"
+                      >
+                        <Icon name="Smartphone" size={20} className="mb-1" />
+                        <span className="text-xs">СБП</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={paymentMethod === 'gift' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setPaymentMethod('gift')}
+                        className="flex flex-col h-auto py-3"
+                      >
+                        <Icon name="Gift" size={20} className="mb-1" />
+                        <span className="text-xs">Подарок</span>
+                      </Button>
+                    </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="tbank-password">
-                      T-Bank Password
-                    </Label>
-                    <Input
-                      id="tbank-password"
-                      type="password"
-                      placeholder="ваш_пароль"
-                      value={editTbankPassword}
-                      onChange={(e) => setEditTbankPassword(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Секретный пароль из личного кабинета T-Bank
-                    </p>
-                  </div>
+                  {paymentMethod === 'gift' && (
+                    <Card className="p-4 bg-blue-500/10 border-blue-500/20">
+                      <div className="flex items-start gap-3">
+                        <Icon name="Info" size={18} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs text-muted-foreground">
+                          <p className="mb-2">
+                            <strong className="text-blue-600 dark:text-blue-400">Оплата подарком:</strong> Пользователь получает ссылку на подарок в Telegram.
+                          </p>
+                          <p>
+                            После отправки подарка бот автоматически выдаёт VIP-ключ.
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+                  
+                  {paymentMethod === 'gift' ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="gift-payment-url">
+                        Ссылка на подарок Telegram
+                      </Label>
+                      <Input
+                        id="gift-payment-url"
+                        type="url"
+                        placeholder="https://t.me/giftcode/..."
+                        value={giftPaymentUrl}
+                        onChange={(e) => setGiftPaymentUrl(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Ссылка на подарок, которую получит пользователь
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="tbank-terminal-key">
+                          T-Bank Terminal Key
+                        </Label>
+                        <Input
+                          id="tbank-terminal-key"
+                          type="text"
+                          placeholder="ваш_terminal_key"
+                          value={editTbankTerminalKey}
+                          onChange={(e) => setEditTbankTerminalKey(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Получите в личном кабинете T-Bank
+                        </p>
+                      </div>
+                  
+                      <div className="space-y-2">
+                        <Label htmlFor="tbank-password">
+                          T-Bank Password
+                        </Label>
+                        <Input
+                          id="tbank-password"
+                          type="password"
+                          placeholder="ваш_пароль"
+                          value={editTbankPassword}
+                          onChange={(e) => setEditTbankPassword(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Секретный пароль из личного кабинета T-Bank
+                        </p>
+                      </div>
+                      
+                      {paymentMethod === 'card' && (
+                        <Card className="p-4 bg-green-500/10 border-green-500/20">
+                          <div className="flex items-start gap-3">
+                            <Icon name="CheckCircle" size={18} className="text-green-500 mt-0.5 flex-shrink-0" />
+                            <div className="text-xs">
+                              <p className="font-medium text-green-600 dark:text-green-400 mb-1">
+                                Платёжная страница
+                              </p>
+                              <p className="text-muted-foreground mb-2">
+                                Будет создана на домене платформы:
+                              </p>
+                              <code className="text-xs bg-muted px-2 py-1 rounded">
+                                {window.location.origin}/payment?bot_id={selectedBot?.id}
+                              </code>
+                              <p className="text-muted-foreground mt-2">
+                                T-Bank будет проверять эту страницу для одобрения платежей.
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      )}
+                      
+                      {paymentMethod === 'sbp' && (
+                        <Card className="p-4 bg-blue-500/10 border-blue-500/20">
+                          <div className="flex items-start gap-3">
+                            <Icon name="Info" size={18} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                            <div className="text-xs text-muted-foreground">
+                              <p className="mb-2">
+                                <strong className="text-blue-600 dark:text-blue-400">СБП:</strong> Система быстрых платежей.
+                              </p>
+                              <p>
+                                Пользователь получит QR-код для оплаты через банковское приложение.
+                              </p>
+                            </div>
+                          </div>
+                        </Card>
+                      )}
+                    </>
+                  )}
                   
                   <div className="space-y-3">
                     <Button 
