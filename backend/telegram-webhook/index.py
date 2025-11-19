@@ -217,13 +217,30 @@ def handle_secret_shop(bot_data: Dict, chat_id: int):
 
 def handle_buy_vip(bot_data: Dict, chat_id: int):
     '''Обработка покупки VIP-ключа'''
-    text = (
-        "💎 VIP-ключ дает доступ к Тайной витрине!\n\n"
-        "Стоимость: 500 ₽\n\n"
-        "После оплаты вы получите VIP QR-код с номером от 501 до 1000.\n\n"
-        "⚠️ Функция оплаты появится в следующей версии."
-    )
-    send_telegram_message(bot_data['telegram_token'], chat_id, text)
+    payment_enabled = bot_data.get('payment_enabled', False)
+    payment_url = bot_data.get('payment_url', '')
+    
+    if payment_enabled and payment_url:
+        text = (
+            "💎 VIP-ключ дает доступ к Тайной витрине!\n\n"
+            "Стоимость: 500 ₽\n\n"
+            "После оплаты вы получите VIP QR-код с номером от 501 до 1000.\n\n"
+            "👇 Нажмите кнопку ниже для оплаты:"
+        )
+        
+        inline_keyboard = create_inline_keyboard([
+            [{'text': '💳 Перейти к оплате', 'url': payment_url}]
+        ])
+        
+        send_telegram_message(bot_data['telegram_token'], chat_id, text, inline_keyboard)
+    else:
+        text = (
+            "💎 VIP-ключ дает доступ к Тайной витрине!\n\n"
+            "Стоимость: 500 ₽\n\n"
+            "После оплаты вы получите VIP QR-код с номером от 501 до 1000.\n\n"
+            "⚠️ Оплата пока недоступна. Обратитесь к администратору."
+        )
+        send_telegram_message(bot_data['telegram_token'], chat_id, text)
 
 def handle_help(bot_data: Dict, chat_id: int):
     '''Помощь пользователю'''

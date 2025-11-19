@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Bot {
   id: string;
@@ -30,12 +31,24 @@ interface BotsTabProps {
   newBotDescription: string;
   newBotLogic: string;
   newBotTemplate: string;
+  qrFreeCount: number;
+  qrPaidCount: number;
+  qrRotationValue: number;
+  qrRotationUnit: string;
+  paymentEnabled: boolean;
+  paymentUrl: string;
   isCreatingBot: boolean;
   setNewBotName: (value: string) => void;
   setNewBotToken: (value: string) => void;
   setNewBotDescription: (value: string) => void;
   setNewBotLogic: (value: string) => void;
   setNewBotTemplate: (value: string) => void;
+  setQrFreeCount: (value: number) => void;
+  setQrPaidCount: (value: number) => void;
+  setQrRotationValue: (value: number) => void;
+  setQrRotationUnit: (value: string) => void;
+  setPaymentEnabled: (value: boolean) => void;
+  setPaymentUrl: (value: string) => void;
   handleCreateBot: () => void;
   handleDeleteBot: (botId: string) => void;
   getStatusColor: (status: string) => string;
@@ -49,12 +62,24 @@ const BotsTab = ({
   newBotDescription,
   newBotLogic,
   newBotTemplate,
+  qrFreeCount,
+  qrPaidCount,
+  qrRotationValue,
+  qrRotationUnit,
+  paymentEnabled,
+  paymentUrl,
   isCreatingBot,
   setNewBotName,
   setNewBotToken,
   setNewBotDescription,
   setNewBotLogic,
   setNewBotTemplate,
+  setQrFreeCount,
+  setQrPaidCount,
+  setQrRotationValue,
+  setQrRotationUnit,
+  setPaymentEnabled,
+  setPaymentUrl,
   handleCreateBot,
   handleDeleteBot,
   getStatusColor,
@@ -191,15 +216,110 @@ const BotsTab = ({
               </div>
               
               {newBotTemplate === 'keys' && (
-                <div className="p-3 rounded-lg border bg-gradient-to-br from-purple-500/10 to-blue-500/10">
-                  <p className="text-xs font-medium mb-1">Шаблон POLYTOPE включает:</p>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• Выдачу бесплатных и VIP ключей</li>
-                    <li>• Интеграцию с платежами</li>
-                    <li>• Управление подписками</li>
-                    <li>• QR-коды для активации</li>
-                  </ul>
-                </div>
+                <>
+                  <div className="p-4 rounded-lg border bg-gradient-to-br from-purple-500/10 to-blue-500/10 space-y-4">
+                    <div>
+                      <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <Icon name="Settings" size={16} />
+                        Настройки QR-кодов
+                      </p>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="qr-free-count" className="text-xs">
+                            Бесплатных QR-кодов
+                          </Label>
+                          <Input
+                            id="qr-free-count"
+                            type="number"
+                            min="0"
+                            value={qrFreeCount}
+                            onChange={(e) => setQrFreeCount(parseInt(e.target.value) || 0)}
+                            className="h-9"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="qr-paid-count" className="text-xs">
+                            Платных QR-кодов
+                          </Label>
+                          <Input
+                            id="qr-paid-count"
+                            type="number"
+                            min="0"
+                            value={qrPaidCount}
+                            onChange={(e) => setQrPaidCount(parseInt(e.target.value) || 0)}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2">
+                        <Label className="text-xs">Ротация QR-кодов</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={qrRotationValue}
+                            onChange={(e) => setQrRotationValue(parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                            className="h-9 flex-1"
+                          />
+                          <Select value={qrRotationUnit} onValueChange={setQrRotationUnit}>
+                            <SelectTrigger className="h-9 flex-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="never">Никогда</SelectItem>
+                              <SelectItem value="hours">Часов</SelectItem>
+                              <SelectItem value="days">Дней</SelectItem>
+                              <SelectItem value="weeks">Недель</SelectItem>
+                              <SelectItem value="years">Лет</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Как часто QR-коды будут обновляться (0 = никогда)
+                        </p>
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="payment-enabled"
+                            checked={paymentEnabled}
+                            onCheckedChange={(checked) => setPaymentEnabled(checked as boolean)}
+                          />
+                          <Label
+                            htmlFor="payment-enabled"
+                            className="text-xs font-medium cursor-pointer"
+                          >
+                            Включить платные QR-коды
+                          </Label>
+                        </div>
+
+                        {paymentEnabled && (
+                          <div className="space-y-2 pl-6">
+                            <Label htmlFor="payment-url" className="text-xs">
+                              Ссылка для оплаты
+                            </Label>
+                            <Input
+                              id="payment-url"
+                              type="url"
+                              placeholder="https://example.com/payment"
+                              value={paymentUrl}
+                              onChange={(e) => setPaymentUrl(e.target.value)}
+                              className="h-9"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Эта ссылка откроется при нажатии кнопки "Купить VIP-ключ"
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
               
               <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">

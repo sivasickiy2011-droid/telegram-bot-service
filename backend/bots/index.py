@@ -57,8 +57,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         query = f'''SELECT b.*, u.username as moderator_name 
-                   FROM bots b 
-                   LEFT JOIN users u ON b.moderated_by = u.id 
+                   FROM t_p5255237_telegram_bot_service.bots b 
+                   LEFT JOIN t_p5255237_telegram_bot_service.users u ON b.moderated_by = u.id 
                    WHERE b.user_id = {user_id} 
                    ORDER BY b.created_at DESC'''
         cursor.execute(query)
@@ -84,6 +84,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         template = body_data.get('template', 'keys')
         description = body_data.get('description', '')
         logic = body_data.get('logic', '')
+        qr_free_count = body_data.get('qr_free_count', 500)
+        qr_paid_count = body_data.get('qr_paid_count', 500)
+        qr_rotation_value = body_data.get('qr_rotation_value', 0)
+        qr_rotation_unit = body_data.get('qr_rotation_unit', 'never')
+        payment_enabled = body_data.get('payment_enabled', False)
+        payment_url = body_data.get('payment_url', '')
         
         if not user_id or not name or not telegram_token or not description or not logic:
             conn.close()
@@ -99,7 +105,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         # Check if user exists
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        check_user_query = f"SELECT id FROM users WHERE id = {user_id}"
+        check_user_query = f"SELECT id FROM t_p5255237_telegram_bot_service.users WHERE id = {user_id}"
         cursor.execute(check_user_query)
         user_exists = cursor.fetchone()
         
@@ -122,9 +128,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         template_escaped = template.replace("'", "''")
         description_escaped = description.replace("'", "''")
         logic_escaped = logic.replace("'", "''")
+        qr_rotation_unit_escaped = qr_rotation_unit.replace("'", "''")
+        payment_url_escaped = payment_url.replace("'", "''")
         
-        query = f'''INSERT INTO bots (user_id, name, telegram_token, template, bot_description, bot_logic, status, moderation_status)
-               VALUES ({user_id}, '{name_escaped}', '{token_escaped}', '{template_escaped}', '{description_escaped}', '{logic_escaped}', 'inactive', 'pending') RETURNING *'''
+        query = f'''INSERT INTO t_p5255237_telegram_bot_service.bots 
+               (user_id, name, telegram_token, template, bot_description, bot_logic, 
+                qr_free_count, qr_paid_count, qr_rotation_value, qr_rotation_unit, 
+                payment_enabled, payment_url, status, moderation_status)
+               VALUES ({user_id}, '{name_escaped}', '{token_escaped}', '{template_escaped}', 
+                       '{description_escaped}', '{logic_escaped}', {qr_free_count}, {qr_paid_count}, 
+                       {qr_rotation_value}, '{qr_rotation_unit_escaped}', {payment_enabled}, 
+                       '{payment_url_escaped}', 'inactive', 'pending') 
+               RETURNING *'''
         cursor.execute(query)
         bot = cursor.fetchone()
         conn.commit()
@@ -173,7 +188,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         status_escaped = status.replace("'", "''")
-        query = f"UPDATE bots SET status = '{status_escaped}', updated_at = CURRENT_TIMESTAMP WHERE id = {bot_id} RETURNING *"
+        query = f"UPDATE t_p5255237_telegram_bot_service.bots SET status = '{status_escaped}', updated_at = CURRENT_TIMESTAMP WHERE id = {bot_id} RETURNING *"
         cursor.execute(query)
         bot = cursor.fetchone()
         conn.commit()
@@ -218,7 +233,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        query = f"DELETE FROM bots WHERE id = {bot_id} RETURNING *"
+        query = f"DELETE FROM t_p5255237_telegram_bot_service.bots WHERE id = {bot_id} RETURNING *"
         cursor.execute(query)
         deleted_bot = cursor.fetchone()
         conn.commit()

@@ -34,6 +34,12 @@ const Index = () => {
   const [newBotDescription, setNewBotDescription] = useState('');
   const [newBotLogic, setNewBotLogic] = useState('');
   const [newBotTemplate, setNewBotTemplate] = useState('keys');
+  const [qrFreeCount, setQrFreeCount] = useState(500);
+  const [qrPaidCount, setQrPaidCount] = useState(500);
+  const [qrRotationValue, setQrRotationValue] = useState(0);
+  const [qrRotationUnit, setQrRotationUnit] = useState('never');
+  const [paymentEnabled, setPaymentEnabled] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState('');
   const [isCreatingBot, setIsCreatingBot] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isTelegramApp, setIsTelegramApp] = useState(false);
@@ -190,6 +196,12 @@ const Index = () => {
         template: newBotTemplate,
         description: newBotDescription,
         logic: newBotLogic,
+        qr_free_count: qrFreeCount,
+        qr_paid_count: qrPaidCount,
+        qr_rotation_value: qrRotationValue,
+        qr_rotation_unit: qrRotationUnit,
+        payment_enabled: paymentEnabled,
+        payment_url: paymentUrl,
       });
 
       toast({
@@ -201,6 +213,12 @@ const Index = () => {
       setNewBotToken('');
       setNewBotDescription('');
       setNewBotLogic('');
+      setQrFreeCount(500);
+      setQrPaidCount(500);
+      setQrRotationValue(0);
+      setQrRotationUnit('never');
+      setPaymentEnabled(false);
+      setPaymentUrl('');
       setNewBotTemplate('keys');
       loadUserBots(currentUser.id);
     } catch (error: any) {
@@ -353,12 +371,24 @@ const Index = () => {
                 newBotDescription={newBotDescription}
                 newBotLogic={newBotLogic}
                 newBotTemplate={newBotTemplate}
+                qrFreeCount={qrFreeCount}
+                qrPaidCount={qrPaidCount}
+                qrRotationValue={qrRotationValue}
+                qrRotationUnit={qrRotationUnit}
+                paymentEnabled={paymentEnabled}
+                paymentUrl={paymentUrl}
                 isCreatingBot={isCreatingBot}
                 setNewBotName={setNewBotName}
                 setNewBotToken={setNewBotToken}
                 setNewBotDescription={setNewBotDescription}
                 setNewBotLogic={setNewBotLogic}
                 setNewBotTemplate={setNewBotTemplate}
+                setQrFreeCount={setQrFreeCount}
+                setQrPaidCount={setQrPaidCount}
+                setQrRotationValue={setQrRotationValue}
+                setQrRotationUnit={setQrRotationUnit}
+                setPaymentEnabled={setPaymentEnabled}
+                setPaymentUrl={setPaymentUrl}
                 handleCreateBot={handleCreateBot}
                 handleDeleteBot={handleDeleteBot}
                 getStatusColor={getStatusColor}

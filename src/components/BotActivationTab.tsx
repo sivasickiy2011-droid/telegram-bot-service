@@ -54,6 +54,20 @@ const BotActivationTab = ({ currentUser }: BotActivationTabProps) => {
       setProcessing(botId);
       
       if (action === 'activate') {
+        const qrResponse = await fetch('https://functions.poehali.dev/11492c68-8058-4d7e-a8a8-f6f82614e69e', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bot_id: botId,
+          }),
+        });
+
+        const qrData = await qrResponse.json();
+        
+        if (!qrResponse.ok) {
+          console.warn('QR codes generation warning:', qrData);
+        }
+        
         const webhookResponse = await fetch('https://functions.poehali.dev/5de84ef3-0564-49a9-95a1-05f3de4ba313', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
