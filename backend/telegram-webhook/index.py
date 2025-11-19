@@ -65,6 +65,50 @@ def register_telegram_user(bot_id: int, user_data: Dict) -> int:
     conn.close()
     return db_user_id
 
+def get_user_state(bot_id: int, telegram_user_id: int) -> Optional[Dict]:
+    '''Получить состояние пользователя'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    query = f'''SELECT * FROM t_p5255237_telegram_bot_service.user_states 
+               WHERE bot_id = {bot_id} AND telegram_user_id = {telegram_user_id}'''
+    cursor.execute(query)
+    state = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return dict(state) if state else None
+
+def set_user_state(bot_id: int, telegram_user_id: int, state: str, data: Dict = None):
+    '''Установить состояние пользователя'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    data_json = json.dumps(data or {}).replace("'", "''")
+    state_escaped = state.replace("'", "''")
+    
+    query = f'''INSERT INTO t_p5255237_telegram_bot_service.user_states 
+               (bot_id, telegram_user_id, state, data, updated_at)
+               VALUES ({bot_id}, {telegram_user_id}, '{state_escaped}', '{data_json}'::jsonb, CURRENT_TIMESTAMP)
+               ON CONFLICT (bot_id, telegram_user_id) 
+               DO UPDATE SET state = '{state_escaped}', data = '{data_json}'::jsonb, updated_at = CURRENT_TIMESTAMP'''
+    cursor.execute(query)
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def clear_user_state(bot_id: int, telegram_user_id: int):
+    '''Очистить состояние пользователя'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    query = f'''UPDATE t_p5255237_telegram_bot_service.user_states 
+               SET state = 'idle', data = '{{}}'::jsonb, updated_at = CURRENT_TIMESTAMP
+               WHERE bot_id = {bot_id} AND telegram_user_id = {telegram_user_id}'''
+    cursor.execute(query)
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 def get_free_qr_key(bot_id: int, user_id: int) -> Optional[Dict]:
     '''Получить свободный бесплатный QR-ключ'''
     conn = get_db_connection()
@@ -270,6 +314,138 @@ def handle_help(bot_data: Dict, chat_id: int):
     )
     send_telegram_message(bot_data['telegram_token'], chat_id, text)
 
+def handle_start_payment(bot_data: Dict, chat_id: int, telegram_user_id: int):
+    '''Начало процесса оплаты - запрос фамилии'''
+    vip_price = bot_data.get('vip_price', 500)
+    terminal_key = bot_data.get('tbank_terminal_key')
+    password = bot_data.get('tbank_password')
+    
+    # Сохраняем данные в state
+    set_user_state(bot_data['id'], telegram_user_id, 'waiting_last_name', {
+        'vip_price': vip_price,
+        'terminal_key': terminal_key,
+        'password': password
+    })
+    
+    text = "📝 Введите вашу <b>Фамилию</b>:"
+    send_telegram_message(bot_data['telegram_token'], chat_id, text)
+
+def handle_last_name_input(bot_data: Dict, chat_id: int, telegram_user_id: int, last_name: str):
+    '''Обработка ввода фамилии'''
+    user_state = get_user_state(bot_data['id'], telegram_user_id)
+    if not user_state:
+        return
+    
+    state_data = user_state.get('data', {})
+    state_data['last_name'] = last_name
+    
+    set_user_state(bot_data['id'], telegram_user_id, 'waiting_first_name', state_data)
+    
+    text = "📝 Введите ваше <b>Имя</b>:"
+    send_telegram_message(bot_data['telegram_token'], chat_id, text)
+
+def handle_first_name_input(bot_data: Dict, chat_id: int, telegram_user_id: int, first_name: str):
+    '''Обработка ввода имени'''
+    user_state = get_user_state(bot_data['id'], telegram_user_id)
+    if not user_state:
+        return
+    
+    state_data = user_state.get('data', {})
+    state_data['first_name'] = first_name
+    
+    set_user_state(bot_data['id'], telegram_user_id, 'waiting_phone', state_data)
+    
+    text = "📝 Введите ваш <b>Телефон</b> (например, +79001234567):"
+    send_telegram_message(bot_data['telegram_token'], chat_id, text)
+
+def handle_phone_input_and_create_payment(bot_data: Dict, chat_id: int, telegram_user_id: int, phone: str):
+    '''Обработка телефона и создание платежа'''
+    user_state = get_user_state(bot_data['id'], telegram_user_id)
+    if not user_state:
+        return
+    
+    state_data = user_state.get('data', {})
+    last_name = state_data.get('last_name', '')
+    first_name = state_data.get('first_name', '')
+    vip_price = state_data.get('vip_price', 500)
+    terminal_key = state_data.get('terminal_key', '')
+    password = state_data.get('password', '')
+    
+    # Создаём платёж
+    import time
+    order_id = f'vip_{bot_data["id"]}_{telegram_user_id}_{int(time.time())}'
+    
+    payment_data = {
+        'terminal_key': terminal_key,
+        'password': password,
+        'amount': vip_price * 100,
+        'order_id': order_id,
+        'description': f'VIP-ключ для {first_name} {last_name}',
+        'payment_method': 'card',
+        'success_url': 'https://t.me',
+        'fail_url': 'https://t.me',
+        'phone': phone,
+        'email': f'{telegram_user_id}@telegram.user'
+    }
+    
+    try:
+        response = requests.post(
+            'https://functions.poehali.dev/99bbc805-8eab-41cb-89c3-b0dd02989907',
+            json=payment_data,
+            timeout=10
+        )
+        result = response.json()
+        
+        if result.get('success') and result.get('payment_url'):
+            payment_url = result['payment_url']
+            payment_id = result.get('payment_id', order_id)
+            
+            # Сохраняем платёж в БД
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            phone_escaped = phone.replace("'", "''")
+            first_name_escaped = first_name.replace("'", "''")
+            last_name_escaped = last_name.replace("'", "''")
+            order_id_escaped = order_id.replace("'", "''")
+            payment_id_escaped = payment_id.replace("'", "''")
+            payment_url_escaped = payment_url.replace("'", "''")
+            
+            query = f'''INSERT INTO t_p5255237_telegram_bot_service.payments 
+                       (bot_id, telegram_user_id, order_id, payment_id, payment_url, amount, status, 
+                        customer_phone, customer_first_name, customer_last_name, created_at)
+                       VALUES ({bot_data["id"]}, {telegram_user_id}, '{order_id_escaped}', '{payment_id_escaped}', 
+                               '{payment_url_escaped}', {vip_price}, 'NEW', '{phone_escaped}', 
+                               '{first_name_escaped}', '{last_name_escaped}', CURRENT_TIMESTAMP)'''
+            cursor.execute(query)
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            text = (
+                f"✅ Данные получены!\n\n"
+                f"👤 ФИО: {first_name} {last_name}\n"
+                f"📱 Телефон: {phone}\n\n"
+                f"💳 Нажмите кнопку для оплаты:"
+            )
+            
+            inline_keyboard = create_inline_keyboard([
+                [{'text': '💳 Оплатить', 'url': payment_url}]
+            ])
+            
+            send_telegram_message(bot_data['telegram_token'], chat_id, text, inline_keyboard)
+            send_telegram_message(bot_data['telegram_token'], chat_id, "⏳ Статус: на проверке...")
+            
+            # Очищаем состояние
+            clear_user_state(bot_data['id'], telegram_user_id)
+        else:
+            error_msg = result.get('error', 'Неизвестная ошибка')
+            send_telegram_message(bot_data['telegram_token'], chat_id, f"⚠️ Ошибка создания платежа: {error_msg}")
+            clear_user_state(bot_data['id'], telegram_user_id)
+    except Exception as e:
+        send_telegram_message(bot_data['telegram_token'], chat_id, f"⚠️ Ошибка при создании платежа: {str(e)}")
+        clear_user_state(bot_data['id'], telegram_user_id)
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Business: Telegram webhook handler - processes bot updates
@@ -319,27 +495,48 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if 'message' in update:
             message = update['message']
             text = message.get('text', '')
+            chat_id = message['chat']['id']
+            telegram_user_id = message['from']['id']
             
-            if text == '/start':
-                handle_start(bot_data, message)
-            elif text == '🎁 Получить бесплатный ключ':
-                handle_free_key(bot_data, message)
-            elif text == '🔐 Узнать про Тайную витрину':
-                handle_secret_shop(bot_data, message['chat']['id'])
-            elif text == '💎 Купить VIP-ключ':
-                handle_buy_vip(bot_data, message['chat']['id'])
-            elif text == '❓ Помощь':
-                handle_help(bot_data, message['chat']['id'])
+            # Проверяем состояние пользователя
+            user_state = get_user_state(bot_data['id'], telegram_user_id)
+            
+            if user_state and user_state.get('state') != 'idle':
+                state = user_state['state']
+                
+                if state == 'waiting_last_name':
+                    handle_last_name_input(bot_data, chat_id, telegram_user_id, text)
+                elif state == 'waiting_first_name':
+                    handle_first_name_input(bot_data, chat_id, telegram_user_id, text)
+                elif state == 'waiting_phone':
+                    handle_phone_input_and_create_payment(bot_data, chat_id, telegram_user_id, text)
+            else:
+                # Обычная обработка команд
+                if text == '/start':
+                    handle_start(bot_data, message)
+                elif text == '🎁 Получить бесплатный ключ':
+                    handle_free_key(bot_data, message)
+                elif text == '🔐 Узнать про Тайную витрину':
+                    handle_secret_shop(bot_data, chat_id)
+                elif text == '💎 Купить VIP-ключ':
+                    handle_buy_vip(bot_data, chat_id)
+                elif text == '❓ Помощь':
+                    handle_help(bot_data, chat_id)
         
         elif 'callback_query' in update:
             callback = update['callback_query']
             chat_id = callback['message']['chat']['id']
+            telegram_user_id = callback['from']['id']
             data = callback['data']
             
             if data == 'secret_shop':
                 handle_secret_shop(bot_data, chat_id)
             elif data == 'buy_vip':
                 handle_buy_vip(bot_data, chat_id)
+            elif data == 'start_payment':
+                handle_start_payment(bot_data, chat_id, telegram_user_id)
+            elif data == 'main_menu':
+                handle_start(bot_data, {'chat': {'id': chat_id}, 'from': callback['from']})
             
             requests.post(
                 f"https://api.telegram.org/bot{bot_data['telegram_token']}/answerCallbackQuery",
