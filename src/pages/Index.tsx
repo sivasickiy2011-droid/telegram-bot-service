@@ -30,6 +30,9 @@ const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [newBotName, setNewBotName] = useState('');
   const [newBotToken, setNewBotToken] = useState('');
+  const [newBotDescription, setNewBotDescription] = useState('');
+  const [newBotLogic, setNewBotLogic] = useState('');
+  const [newBotTemplate, setNewBotTemplate] = useState('keys');
   const [isCreatingBot, setIsCreatingBot] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isTelegramApp, setIsTelegramApp] = useState(false);
@@ -157,10 +160,10 @@ const Index = () => {
   };
 
   const handleCreateBot = async () => {
-    if (!newBotName || !newBotToken) {
+    if (!newBotName || !newBotToken || !newBotDescription || !newBotLogic) {
       toast({
         title: 'Ошибка',
-        description: 'Заполните все поля',
+        description: 'Заполните все поля, включая описание и логику бота',
         variant: 'destructive',
       });
       return;
@@ -183,16 +186,21 @@ const Index = () => {
         user_id: currentUser.id,
         name: newBotName,
         telegram_token: newBotToken,
-        template: 'POLYTOPE',
+        template: newBotTemplate,
+        description: newBotDescription,
+        logic: newBotLogic,
       });
 
       toast({
-        title: 'Бот создан',
-        description: 'Ваш бот успешно добавлен',
+        title: 'Бот отправлен на модерацию',
+        description: 'Администратор проверит настройки перед запуском',
       });
 
       setNewBotName('');
       setNewBotToken('');
+      setNewBotDescription('');
+      setNewBotLogic('');
+      setNewBotTemplate('keys');
       loadUserBots(currentUser.id);
     } catch (error) {
       toast({
@@ -307,9 +315,15 @@ const Index = () => {
                 bots={bots}
                 newBotName={newBotName}
                 newBotToken={newBotToken}
+                newBotDescription={newBotDescription}
+                newBotLogic={newBotLogic}
+                newBotTemplate={newBotTemplate}
                 isCreatingBot={isCreatingBot}
                 setNewBotName={setNewBotName}
                 setNewBotToken={setNewBotToken}
+                setNewBotDescription={setNewBotDescription}
+                setNewBotLogic={setNewBotLogic}
+                setNewBotTemplate={setNewBotTemplate}
                 handleCreateBot={handleCreateBot}
                 getStatusColor={getStatusColor}
                 currentUser={currentUser}

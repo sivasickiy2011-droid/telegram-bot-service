@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Bot {
   id: string;
@@ -25,9 +27,15 @@ interface BotsTabProps {
   bots: Bot[];
   newBotName: string;
   newBotToken: string;
+  newBotDescription: string;
+  newBotLogic: string;
+  newBotTemplate: string;
   isCreatingBot: boolean;
   setNewBotName: (value: string) => void;
   setNewBotToken: (value: string) => void;
+  setNewBotDescription: (value: string) => void;
+  setNewBotLogic: (value: string) => void;
+  setNewBotTemplate: (value: string) => void;
   handleCreateBot: () => void;
   getStatusColor: (status: string) => string;
   currentUser?: any;
@@ -37,15 +45,34 @@ const BotsTab = ({
   bots,
   newBotName,
   newBotToken,
+  newBotDescription,
+  newBotLogic,
+  newBotTemplate,
   isCreatingBot,
   setNewBotName,
   setNewBotToken,
+  setNewBotDescription,
+  setNewBotLogic,
+  setNewBotTemplate,
   handleCreateBot,
   getStatusColor,
   currentUser,
 }: BotsTabProps) => {
   const isAdmin = currentUser?.role === 'admin';
   const canCreateBot = isAdmin || bots.length < 1;
+
+  const getBotTypeLabel = (type: string) => {
+    const types: Record<string, string> = {
+      keys: '🔑 QR-ключи + VIP-доступ',
+      shop: '🛍️ Интернет-магазин',
+      subscription: '💎 Подписки и контент',
+      support: '💬 Поддержка клиентов',
+      custom: '⚙️ Кастомная логика',
+      POLYTOPE: '🔑 QR-ключи + VIP-доступ',
+    };
+    return types[type] || type;
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {!isAdmin && bots.length >= 1 && (
@@ -110,39 +137,71 @@ const BotsTab = ({
                   onChange={(e) => setNewBotToken(e.target.value)}
                 />
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="bot-template">Тип бота</Label>
+                <Select 
+                  value={newBotTemplate} 
+                  onValueChange={(value) => {
+                    setNewBotTemplate(value);
+                    if (value === 'keys' && !newBotLogic) {
+                      setNewBotLogic('Команда /start - приветствие и главное меню\nКоманда "Получить бесплатный ключ" - выдает бесплатный QR-ключ (номера 1-500)\nКоманда "Купить VIP-ключ" - запускает процесс оплаты через Telegram Payments\nПосле оплаты - выдается VIP-ключ с доступом к Тайной витрине\nКоманда "Мои ключи" - показывает все ключи пользователя\nИнтеграция с базой данных для хранения ключей и статусов\nАвтоматическая проверка и активация QR-кодов');
+                      setNewBotDescription('Бот для выдачи бесплатных и VIP ключей доступа к Тайной витрине с интеграцией QR-кодов и платежной системы');
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите тип бота" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="keys">🔑 QR-ключи + VIP-доступ (POLYTOPE)</SelectItem>
+                    <SelectItem value="shop">🛍️ Интернет-магазин</SelectItem>
+                    <SelectItem value="subscription">💎 Подписки и контент</SelectItem>
+                    <SelectItem value="support">💬 Поддержка клиентов</SelectItem>
+                    <SelectItem value="custom">⚙️ Кастомная логика</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bot-description">Краткое описание (что делает бот)</Label>
+                <Textarea
+                  id="bot-description"
+                  placeholder="Например: Бот выдает бесплатные и VIP ключи доступа, управляет подписками пользователей"
+                  value={newBotDescription}
+                  onChange={(e) => setNewBotDescription(e.target.value)}
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bot-logic">Подробная логика работы</Label>
+                <Textarea
+                  id="bot-logic"
+                  placeholder="Опишите детально как работает бот: команды, кнопки, сценарии использования, интеграции с платежами и т.д."
+                  value={newBotLogic}
+                  onChange={(e) => setNewBotLogic(e.target.value)}
+                  rows={6}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Администратор будет проверять эту информацию при модерации
+                </p>
+              </div>
+              
               <div className="space-y-3">
-                <Label>Шаблон POLYTOPE</Label>
-                <div className="p-4 rounded-lg border bg-gradient-to-br from-purple-500/10 to-blue-500/10">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="font-semibold text-lg mb-1">QR-ключи + VIP-доступ</p>
-                      <p className="text-xs text-muted-foreground">Бот для управления VIP-подписками через QR-коды</p>
-                    </div>
-                    
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-start gap-2">
-                        <Icon name="Check" size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Генерация уникальных QR-ключей для пользователей</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Icon name="Check" size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Автоматическая активация VIP-статуса по ключу</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Icon name="Check" size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Управление сроками действия VIP-подписок</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Icon name="Check" size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Статистика использования ключей</span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <Icon name="Check" size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>Уведомления об окончании подписки</span>
-                      </div>
-                    </div>
-                    
-                    {!isAdmin && (
+                {newBotTemplate === 'keys' && (
+                  <div className="p-3 rounded-lg border bg-gradient-to-br from-purple-500/10 to-blue-500/10">
+                    <p className="text-xs font-medium mb-1">Шаблон POLYTOPE включает:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• Выдачу бесплатных и VIP ключей</li>
+                      <li>• Интеграцию с платежами</li>
+                      <li>• Управление подписками</li>
+                      <li>• QR-коды для активации</li>
+                    </ul>
+                  </div>
+                )}
+                
+                {!isAdmin && (
                       <div className="pt-2 border-t border-border/50">
                         <p className="text-xs text-orange-500 font-medium">✨ Включено в ваш тариф</p>
                       </div>
@@ -188,7 +247,7 @@ const BotsTab = ({
                 </div>
                 <div>
                   <h3 className="font-bold">{bot.name}</h3>
-                  <p className="text-xs text-muted-foreground">{bot.template}</p>
+                  <p className="text-xs text-muted-foreground">{getBotTypeLabel(bot.template)}</p>
                 </div>
               </div>
               {bot.moderationStatus === 'pending' ? (

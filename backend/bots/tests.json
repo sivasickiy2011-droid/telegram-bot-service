@@ -10,7 +10,7 @@
     {
       "name": "Get bots for user",
       "method": "GET",
-      "path": "/?user_id=1",
+      "path": "/?user_id=999999",
       "expectedStatus": 200,
       "expectedBody": {
         "bots": []
@@ -25,7 +25,9 @@
         "user_id": 1,
         "name": "Test Bot",
         "telegram_token": "123:ABC",
-        "template": "POLYTOPE"
+        "template": "keys",
+        "description": "Test bot for QR keys distribution",
+        "logic": "Bot provides free and VIP keys to users"
       },
       "expectedStatus": 201,
       "expectedBody": {

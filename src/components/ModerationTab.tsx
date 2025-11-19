@@ -11,6 +11,9 @@ interface PendingBot {
   name: string;
   telegram_token: string;
   template: string;
+  bot_description?: string;
+  bot_logic?: string;
+  bot_template?: string;
   owner_name: string;
   created_at: string;
   user_id: number;
@@ -28,6 +31,17 @@ const ModerationTab = ({ currentUser, onModerate }: ModerationTabProps) => {
   const [reason, setReason] = useState('');
   const [processing, setProcessing] = useState(false);
   const { toast } = useToast();
+
+  const getBotTypeLabel = (type: string) => {
+    const types: Record<string, string> = {
+      keys: '🔑 QR-ключи + VIP-доступ',
+      shop: '🛍️ Интернет-магазин',
+      subscription: '💎 Подписки и контент',
+      support: '💬 Поддержка клиентов',
+      custom: '⚙️ Кастомная логика',
+    };
+    return types[type] || type;
+  };
 
   useEffect(() => {
     loadPendingBots();
@@ -154,14 +168,34 @@ const ModerationTab = ({ currentUser, onModerate }: ModerationTabProps) => {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4 p-4 rounded-lg bg-muted/30">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Шаблон</p>
-                <p className="font-semibold">{bot.template}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Токен</p>
-                <p className="font-mono text-sm">{bot.telegram_token.substring(0, 15)}...</p>
+            <div className="space-y-4 mb-4">
+              <div className="p-4 rounded-lg bg-muted/30">
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Тип бота</p>
+                    <p className="font-semibold">{getBotTypeLabel(bot.bot_template || bot.template)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Токен</p>
+                    <p className="font-mono text-sm">{bot.telegram_token.substring(0, 15)}...</p>
+                  </div>
+                </div>
+                
+                {bot.bot_description && (
+                  <div className="mb-3">
+                    <p className="text-xs text-muted-foreground mb-1">Описание бота</p>
+                    <p className="text-sm">{bot.bot_description}</p>
+                  </div>
+                )}
+                
+                {bot.bot_logic && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Логика работы</p>
+                    <div className="text-sm whitespace-pre-wrap p-3 rounded bg-background/50 border max-h-48 overflow-y-auto">
+                      {bot.bot_logic}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

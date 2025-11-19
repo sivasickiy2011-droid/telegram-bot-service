@@ -81,9 +81,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         user_id = body_data.get('user_id')
         name = body_data.get('name')
         telegram_token = body_data.get('telegram_token')
-        template = body_data.get('template', 'POLYTOPE')
+        template = body_data.get('template', 'keys')
+        description = body_data.get('description', '')
+        logic = body_data.get('logic', '')
         
-        if not user_id or not name or not telegram_token:
+        if not user_id or not name or not telegram_token or not description or not logic:
             conn.close()
             return {
                 'statusCode': 400,
@@ -91,7 +93,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'error': 'user_id, name, and telegram_token are required'}),
+                'body': json.dumps({'error': 'user_id, name, telegram_token, description, and logic are required'}),
                 'isBase64Encoded': False
             }
         
@@ -99,10 +101,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         name_escaped = name.replace("'", "''")
         token_escaped = telegram_token.replace("'", "''")
         template_escaped = template.replace("'", "''")
+        description_escaped = description.replace("'", "''")
+        logic_escaped = logic.replace("'", "''")
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        query = f'''INSERT INTO bots (user_id, name, telegram_token, template, status, moderation_status)
-               VALUES ({user_id}, '{name_escaped}', '{token_escaped}', '{template_escaped}', 'inactive', 'pending') RETURNING *'''
+        query = f'''INSERT INTO bots (user_id, name, telegram_token, template, bot_description, bot_logic, status, moderation_status)
+               VALUES ({user_id}, '{name_escaped}', '{token_escaped}', '{template_escaped}', '{description_escaped}', '{logic_escaped}', 'inactive', 'pending') RETURNING *'''
         cursor.execute(query)
         bot = cursor.fetchone()
         conn.commit()
