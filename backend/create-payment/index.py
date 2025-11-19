@@ -217,10 +217,16 @@ def create_sbp_payment(terminal_key: str, password: str, amount: int,
     token = generate_token(payload, password)
     payload['Token'] = token
     
+    headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'TeleBot-Platform/1.0',
+        'Accept': 'application/json'
+    }
+    
     req = urllib.request.Request(
         api_url,
         data=json.dumps(payload).encode('utf-8'),
-        headers={'Content-Type': 'application/json'},
+        headers=headers,
         method='POST'
     )
     
@@ -239,10 +245,16 @@ def create_sbp_payment(terminal_key: str, password: str, amount: int,
                 qr_token = generate_token(qr_payload, password)
                 qr_payload['Token'] = qr_token
                 
+                qr_headers = {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'TeleBot-Platform/1.0',
+                    'Accept': 'application/json'
+                }
+                
                 qr_req = urllib.request.Request(
                     qr_url,
                     data=json.dumps(qr_payload).encode('utf-8'),
-                    headers={'Content-Type': 'application/json'},
+                    headers=qr_headers,
                     method='POST'
                 )
                 

@@ -91,10 +91,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         is_test = 'DEMO' in terminal_key
         url = 'https://rest-api-test.tinkoff.ru/v2/Init' if is_test else 'https://securepay.tinkoff.ru/v2/Init'
         
+        headers = {
+            'Content-Type': 'application/json',
+            'User-Agent': 'TeleBot-Platform/1.0',
+            'Accept': 'application/json'
+        }
+        
         req = urllib.request.Request(
             url,
             data=json.dumps(init_params).encode('utf-8'),
-            headers={'Content-Type': 'application/json'}
+            headers=headers
         )
         
         with urllib.request.urlopen(req, timeout=10) as response:
