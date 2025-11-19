@@ -1,0 +1,50 @@
+{
+  "tests": [
+    {
+      "name": "Test ChatGPT with proxy",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "message": "Hello, how are you?",
+        "provider": "chatgpt",
+        "config": {
+          "useProxy": true,
+          "proxyUrl": "https://api.pawan.krd/v1",
+          "model": "gpt-3.5-turbo",
+          "systemPrompt": "You are a helpful assistant.",
+          "maxTokens": 100,
+          "temperature": 0.7
+        },
+        "context": []
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "reply": "string",
+        "provider": "chatgpt",
+        "success": true
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test empty message",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "message": "",
+        "provider": "chatgpt",
+        "config": {}
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test OPTIONS for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}

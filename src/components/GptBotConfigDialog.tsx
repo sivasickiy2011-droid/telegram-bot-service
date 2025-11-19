@@ -37,6 +37,8 @@ export interface GptBotConfig {
   dailyLimit: number;
   useProxy: boolean;
   proxyUrl: string;
+  proxyApiKey: string;
+  folderId?: string;
 }
 
 const GptBotConfigDialog = ({ open, onOpenChange, onSave }: GptBotConfigDialogProps) => {
@@ -49,6 +51,8 @@ const GptBotConfigDialog = ({ open, onOpenChange, onSave }: GptBotConfigDialogPr
   const [dailyLimit, setDailyLimit] = useState(100);
   const [useProxy, setUseProxy] = useState(true);
   const [proxyUrl, setProxyUrl] = useState('https://api.pawan.krd/v1');
+  const [proxyApiKey, setProxyApiKey] = useState('');
+  const [folderId, setFolderId] = useState('');
 
   const handleSave = () => {
     onSave({
@@ -60,7 +64,9 @@ const GptBotConfigDialog = ({ open, onOpenChange, onSave }: GptBotConfigDialogPr
       temperature,
       dailyLimit,
       useProxy,
-      proxyUrl
+      proxyUrl,
+      proxyApiKey,
+      folderId
     });
   };
 
@@ -148,20 +154,55 @@ const GptBotConfigDialog = ({ open, onOpenChange, onSave }: GptBotConfigDialogPr
                 </div>
 
                 {useProxy && (
-                  <div className="space-y-2 pl-6">
-                    <Label htmlFor="proxy-url">
-                      Прокси URL
-                      <span className="ml-2 text-xs text-green-500">✓ Бесплатно</span>
-                    </Label>
-                    <Input
-                      id="proxy-url"
-                      value={proxyUrl}
-                      onChange={(e) => setProxyUrl(e.target.value)}
-                      placeholder="https://api.pawan.krd/v1"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Рекомендуется: https://api.pawan.krd/v1 (бесплатный, без регистрации)
-                    </p>
+                  <div className="space-y-3 pl-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="proxy-url">
+                        Прокси URL
+                      </Label>
+                      <Input
+                        id="proxy-url"
+                        value={proxyUrl}
+                        onChange={(e) => setProxyUrl(e.target.value)}
+                        placeholder="https://api.pawan.krd/v1"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Рекомендуется: https://api.pawan.krd/v1
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="proxy-api-key">
+                        Прокси API Key
+                        <span className="ml-2 text-xs text-orange-500">Требуется</span>
+                      </Label>
+                      <Input
+                        id="proxy-api-key"
+                        type="password"
+                        value={proxyApiKey}
+                        onChange={(e) => setProxyApiKey(e.target.value)}
+                        placeholder="pk-..."
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Получите бесплатно в Discord: <a href="https://discord.pawan.krd" target="_blank" rel="noopener" className="text-blue-500 underline">discord.pawan.krd</a>
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="proxy-api-key">
+                        Прокси API Key
+                        <span className="ml-2 text-xs text-orange-500">Требуется</span>
+                      </Label>
+                      <Input
+                        id="proxy-api-key"
+                        type="password"
+                        value={proxyApiKey}
+                        onChange={(e) => setProxyApiKey(e.target.value)}
+                        placeholder="pk-..."
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Получите бесплатно в Discord: <a href="https://discord.pawan.krd" target="_blank" rel="noopener" className="text-blue-500 underline">discord.pawan.krd</a>
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -188,6 +229,20 @@ const GptBotConfigDialog = ({ open, onOpenChange, onSave }: GptBotConfigDialogPr
 
             {provider === 'yandexgpt' && (
               <>
+                <div className="space-y-2">
+                  <Label htmlFor="folder-id">
+                    Folder ID (из Яндекс.Облако)
+                  </Label>
+                  <Input
+                    id="folder-id"
+                    value={folderId}
+                    onChange={(e) => setFolderId(e.target.value)}
+                    placeholder="b1g..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Найдите в Яндекс.Облако → Обзор → ID каталога
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="yandex-api-key">
                     YandexGPT API Key
@@ -315,7 +370,11 @@ const GptBotConfigDialog = ({ open, onOpenChange, onSave }: GptBotConfigDialogPr
             <Button
               onClick={handleSave}
               className="flex-1"
-              disabled={!useProxy && !apiKey && provider === 'chatgpt'}
+              disabled={
+                (provider === 'chatgpt' && useProxy && !proxyApiKey) ||
+                (provider === 'chatgpt' && !useProxy && !apiKey) ||
+                (provider === 'yandexgpt' && (!apiKey || !folderId))
+              }
             >
               <Icon name="Save" size={16} className="mr-2" />
               Сохранить конфигурацию
