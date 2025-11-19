@@ -74,6 +74,58 @@ const BotSettingsDialog = ({
   const [tbankTerminalKey, setTbankTerminalKey] = useState('');
   const [tbankPassword, setTbankPassword] = useState('');
   const [vipPrice, setVipPrice] = useState(500);
+  const [testingPayment, setTestingPayment] = useState(false);
+  const [testResult, setTestResult] = useState<{success: boolean; message: string; details?: any} | null>(null);
+  
+  const handleTestPayment = async () => {
+    if (!tbankTerminalKey || !tbankPassword) {
+      setTestResult({
+        success: false,
+        message: 'Заполните Terminal Key и Password для тестирования'
+      });
+      return;
+    }
+    
+    setTestingPayment(true);
+    setTestResult(null);
+    
+    try {
+      const response = await fetch('https://functions.poehali.dev/d3348932-2960-4d59-ab09-7708e4dac9b1', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          terminal_key: tbankTerminalKey,
+          password: tbankPassword,
+          amount: vipPrice * 100
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setTestResult({
+          success: true,
+          message: 'Тестовый платёж успешно создан!',
+          details: data
+        });
+      } else {
+        setTestResult({
+          success: false,
+          message: data.error || 'Ошибка при создании платежа',
+          details: data
+        });
+      }
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: `Ошибка сети: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`
+      });
+    } finally {
+      setTestingPayment(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -159,12 +211,42 @@ const BotSettingsDialog = ({
                     </p>
                   </div>
                   
-                  <Card className="p-3 bg-blue-500/10 border-blue-500/20">
-                    <p className="text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
-                      <Icon name="Info" size={14} className="mt-0.5 flex-shrink-0" />
-                      <span>После сохранения данных оплата через СБП T-Bank будет работать автоматически</span>
-                    </p>
-                  </Card>
+                  <div className="space-y-3">
+                    <Button 
+                      type="button"
+                      variant="outline" 
+                      onClick={handleTestPayment}
+                      disabled={testingPayment || !tbankTerminalKey || !tbankPassword}
+                      className="w-full"
+                    >
+                      <Icon name={testingPayment ? "Loader2" : "TestTube2"} size={14} className={`mr-2 ${testingPayment ? 'animate-spin' : ''}`} />
+                      {testingPayment ? 'Проверяю...' : 'Протестировать подключение'}
+                    </Button>
+                    
+                    {testResult && (
+                      <Card className={`p-3 ${testResult.success ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+                        <p className={`text-xs flex items-start gap-2 ${testResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                          <Icon name={testResult.success ? "CheckCircle2" : "XCircle"} size={14} className="mt-0.5 flex-shrink-0" />
+                          <span>{testResult.message}</span>
+                        </p>
+                        {testResult.details && (
+                          <details className="mt-2">
+                            <summary className="text-xs cursor-pointer opacity-70">Подробности</summary>
+                            <pre className="text-xs mt-1 p-2 bg-black/5 dark:bg-white/5 rounded overflow-auto max-h-32">
+                              {JSON.stringify(testResult.details, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </Card>
+                    )}
+                    
+                    <Card className="p-3 bg-blue-500/10 border-blue-500/20">
+                      <p className="text-xs text-blue-600 dark:text-blue-400 flex items-start gap-2">
+                        <Icon name="Info" size={14} className="mt-0.5 flex-shrink-0" />
+                        <span>После сохранения данных оплата через СБП T-Bank будет работать автоматически</span>
+                      </p>
+                    </Card>
+                  </div>
                 </div>
               )}
             </div>

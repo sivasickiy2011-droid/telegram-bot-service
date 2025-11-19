@@ -1,0 +1,24 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "Test payment with missing credentials",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "amount": 50000
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "terminal_key and password are required"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
