@@ -12,6 +12,8 @@ import BotActivationTab from '@/components/BotActivationTab';
 import QrRotationTab from '@/components/QrRotationTab';
 import AppHeader from '@/components/AppHeader';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import CustomScrollbar from '@/components/CustomScrollbar';
+import ScrollToTop from '@/components/ScrollToTop';
 import { useAuth } from '@/hooks/useAuth';
 import { useBotManagement } from '@/hooks/useBotManagement';
 
@@ -201,6 +203,9 @@ const Index = () => {
         onTabChange={setActiveTab}
         isAdmin={currentUser?.role === 'admin'}
       />
+      
+      <CustomScrollbar />
+      <ScrollToTop />
     </div>
   );
 };
