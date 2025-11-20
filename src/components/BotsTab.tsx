@@ -322,12 +322,12 @@ const BotsTab = ({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in pb-20 md:pb-0">
       {!isAdmin && bots.length >= 1 && (
-        <Card className="p-4 bg-muted/30 border-orange-500/50">
-          <div className="flex items-start gap-3">
-            <Icon name="Info" size={20} className="text-orange-500 mt-0.5" />
-            <div className="text-sm">
+        <Card className="p-3 md:p-4 bg-muted/30 border-orange-500/50">
+          <div className="flex items-start gap-2 md:gap-3">
+            <Icon name="Info" size={18} className="text-orange-500 mt-0.5 flex-shrink-0" />
+            <div className="text-xs md:text-sm">
               <p className="font-medium mb-1">Базовый тариф</p>
               <p className="text-muted-foreground">
                 Вы можете создать только одного бота с шаблоном POLYTOPE. Для расширенных возможностей обратитесь к администратору.
@@ -337,10 +337,10 @@ const BotsTab = ({
         </Card>
       )}
       
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-3xl font-bold">Мои боты</h2>
-          <p className="text-muted-foreground mt-1">Управляйте вашими Telegram-ботами</p>
+          <h2 className="text-2xl md:text-3xl font-bold">Мои боты</h2>
+          <p className="text-muted-foreground text-sm mt-1">Управляйте вашими Telegram-ботами</p>
         </div>
         <CreateBotDialog
           canCreateBot={canCreateBot}

@@ -11,6 +11,7 @@ import ModerationTab from '@/components/ModerationTab';
 import BotActivationTab from '@/components/BotActivationTab';
 import QrRotationTab from '@/components/QrRotationTab';
 import AppHeader from '@/components/AppHeader';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import { useAuth } from '@/hooks/useAuth';
 import { useBotManagement } from '@/hooks/useBotManagement';
 
@@ -73,10 +74,10 @@ const Index = () => {
         onLogout={handleLogout}
       />
 
-      <div className="pt-24 pb-12">
-        <div className="container mx-auto px-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-            <TabsList className={`grid w-full max-w-5xl mx-auto h-12 ${currentUser?.role === 'admin' ? 'grid-cols-7' : 'grid-cols-3'}`}>
+      <div className="pt-24 pb-12 md:pb-12">
+        <div className="container mx-auto px-4 md:px-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-8">
+            <TabsList className={`hidden md:grid w-full max-w-5xl mx-auto h-12 ${currentUser?.role === 'admin' ? 'grid-cols-7' : 'grid-cols-3'}`}>
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <Icon name="LayoutDashboard" size={16} />
                 Дашборд
@@ -194,6 +195,12 @@ const Index = () => {
           </Tabs>
         </div>
       </div>
+      
+      <MobileBottomNav 
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        isAdmin={currentUser?.role === 'admin'}
+      />
     </div>
   );
 };

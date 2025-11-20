@@ -28,37 +28,37 @@ const DashboardTab = ({ bots, getStatusColor }: DashboardTabProps) => {
   ];
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="space-y-4 md:space-y-8 animate-fade-in pb-20 md:pb-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {stats.map((stat, index) => (
           <Card
             key={index}
-            className="p-6 glass-card hover:scale-105 transition-transform duration-300 animate-slide-up"
+            className="p-4 md:p-6 glass-card hover:scale-105 transition-transform duration-300 animate-slide-up"
             style={{ animationDelay: `${index * 100}ms` }}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className={`w-12 h-12 rounded-xl ${stat.gradient} flex items-center justify-center`}>
-                <Icon name={stat.icon as any} size={24} className="text-white" />
+            <div className="flex items-start justify-between mb-3 md:mb-4">
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl ${stat.gradient} flex items-center justify-center`}>
+                <Icon name={stat.icon as any} size={20} className="text-white md:w-6 md:h-6" />
               </div>
-              <Badge variant="secondary" className="text-green-400 bg-green-400/10">
+              <Badge variant="secondary" className="text-green-400 bg-green-400/10 text-[10px] md:text-xs h-5 md:h-6">
                 {stat.change}
               </Badge>
             </div>
-            <h3 className="text-3xl font-bold mb-1">{stat.value}</h3>
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
+            <h3 className="text-xl md:text-3xl font-bold mb-1">{stat.value}</h3>
+            <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6 glass-card">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold">Активность ботов</h3>
-            <Button variant="outline" size="sm">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <Card className="p-4 md:p-6 glass-card">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h3 className="text-lg md:text-xl font-bold">Активность ботов</h3>
+            <Button variant="outline" size="sm" className="h-8 md:h-9">
               <Icon name="RefreshCw" size={14} />
             </Button>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {bots.slice(0, 3).map((bot) => {
               const interactionsToday = bot.interactions_today || 0;
               const interactionsYesterday = bot.interactions_yesterday || 0;
@@ -68,14 +68,14 @@ const DashboardTab = ({ bots, getStatusColor }: DashboardTabProps) => {
               const isPositiveTrend = trendPercent >= 0;
               
               return (
-                <div key={bot.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-3 flex-1">
+                <div key={bot.id} className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-2 md:gap-3 flex-1">
                     <div className={`w-2 h-2 rounded-full ${getStatusColor(bot.status)}`} />
-                    <div className="flex-1">
-                      <p className="font-semibold">{bot.name}</p>
-                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm md:text-base truncate">{bot.name}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 text-xs md:text-sm text-muted-foreground">
                         <span>{bot.users} пользователей</span>
-                        <span className="text-xs">•</span>
+                        <span className="hidden sm:inline text-xs">•</span>
                         <div className="flex items-center gap-1">
                           <Icon name="Zap" size={12} className="text-orange-500" />
                           <span>{interactionsToday} взаимодействий</span>
