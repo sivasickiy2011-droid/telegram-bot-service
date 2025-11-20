@@ -172,6 +172,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         body_data = json.loads(event.get('body', '{}'))
         bot_id = body_data.get('bot_id')
         status = body_data.get('status')
+        telegram_token = body_data.get('telegram_token')
         payment_url = body_data.get('payment_url')
         payment_enabled = body_data.get('payment_enabled')
         button_texts = body_data.get('button_texts')
@@ -206,6 +207,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if status is not None:
             status_escaped = status.replace("'", "''")
             update_parts.append(f"status = '{status_escaped}'")
+        
+        if telegram_token is not None:
+            telegram_token_escaped = telegram_token.replace("'", "''")
+            update_parts.append(f"telegram_token = '{telegram_token_escaped}'")
         
         if payment_url is not None:
             payment_url_escaped = payment_url.replace("'", "''")

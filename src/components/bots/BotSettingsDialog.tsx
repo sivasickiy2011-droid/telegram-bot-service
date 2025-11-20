@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
+import TokenSettingsTab from './settings/TokenSettingsTab';
 import PaymentSettingsTab from './settings/PaymentSettingsTab';
 import TextsSettingsTab from './settings/TextsSettingsTab';
 import AdditionalSettingsTab from './settings/AdditionalSettingsTab';
@@ -54,6 +55,8 @@ interface BotSettingsDialogProps {
   setEditPrivacyConsentEnabled: (value: boolean) => void;
   editPrivacyConsentText: string;
   setEditPrivacyConsentText: (value: string) => void;
+  editTelegramToken: string;
+  setEditTelegramToken: (value: string) => void;
   editVipPromoEnabled: boolean;
   setEditVipPromoEnabled: (value: boolean) => void;
   editVipPromoStartDate: string;
@@ -113,7 +116,11 @@ const BotSettingsDialog = ({
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="token">
+              <Icon name="Key" size={14} className="mr-2" />
+              Токен
+            </TabsTrigger>
             <TabsTrigger value="payment">
               <Icon name="CreditCard" size={14} className="mr-2" />
               Оплата
@@ -131,6 +138,11 @@ const BotSettingsDialog = ({
               Инструкции
             </TabsTrigger>
           </TabsList>
+          
+          <TokenSettingsTab
+            editTelegramToken={editTelegramToken}
+            setEditTelegramToken={setEditTelegramToken}
+          />
           
           <PaymentSettingsTab
             selectedBot={selectedBot}

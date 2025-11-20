@@ -28,6 +28,7 @@ interface Bot {
   users: number;
   messages: number;
   template: string;
+  telegram_token?: string;
   payment_url?: string;
   payment_enabled?: boolean;
   qr_free_count?: number;
@@ -69,6 +70,7 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
   const [editOfferImageUrl, setEditOfferImageUrl] = useState('');
   const [editPrivacyConsentEnabled, setEditPrivacyConsentEnabled] = useState(false);
   const [editPrivacyConsentText, setEditPrivacyConsentText] = useState('');
+  const [editTelegramToken, setEditTelegramToken] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
@@ -92,6 +94,7 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
         users: bot.total_users || 0,
         messages: bot.total_messages || 0,
         template: bot.template,
+        telegram_token: bot.telegram_token,
         moderationStatus: bot.moderation_status,
         moderationReason: bot.moderation_reason,
         payment_url: bot.payment_url,
@@ -168,6 +171,7 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
     setEditOfferImageUrl(bot.offer_image_url || '');
     setEditPrivacyConsentEnabled(bot.privacy_consent_enabled || false);
     setEditPrivacyConsentText(bot.privacy_consent_text || 'Я согласен на обработку персональных данных');
+    setEditTelegramToken(bot.telegram_token || '');
     setSettingsOpen(true);
   };
 
@@ -183,6 +187,7 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
         },
         body: JSON.stringify({
           bot_id: selectedBot.id,
+          telegram_token: editTelegramToken,
           payment_url: editPaymentUrl,
           payment_enabled: editPaymentEnabled,
           button_texts: editButtonTexts,
@@ -298,6 +303,13 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
                           <p className="text-sm capitalize">{bot.status}</p>
                         </div>
                       </div>
+                      
+                      {bot.telegram_token && (
+                        <div className="mt-3 p-3 rounded-lg bg-muted/50 border">
+                          <p className="text-xs text-muted-foreground mb-1">Telegram Token</p>
+                          <p className="text-sm font-mono break-all">{bot.telegram_token}</p>
+                        </div>
+                      )}
 
                       {bot.moderationStatus === 'rejected' && bot.moderationReason && (
                         <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
@@ -361,6 +373,16 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
         setEditPrivacyConsentEnabled={setEditPrivacyConsentEnabled}
         editPrivacyConsentText={editPrivacyConsentText}
         setEditPrivacyConsentText={setEditPrivacyConsentText}
+        editTelegramToken={editTelegramToken}
+        setEditTelegramToken={setEditTelegramToken}
+        editVipPromoEnabled={false}
+        setEditVipPromoEnabled={() => {}}
+        editVipPromoStartDate=""
+        setEditVipPromoStartDate={() => {}}
+        editVipPromoEndDate=""
+        setEditVipPromoEndDate={() => {}}
+        editVipPurchaseMessage=""
+        setEditVipPurchaseMessage={() => {}}
         onSave={handleSaveSettings}
       />
     </>
