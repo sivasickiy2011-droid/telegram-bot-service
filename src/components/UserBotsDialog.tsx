@@ -156,41 +156,6 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
     }
   };
 
-  const handleToggleBotStatus = async (bot: Bot) => {
-    const newStatus = bot.status === 'active' ? 'inactive' : 'active';
-    
-    try {
-      const response = await fetch('https://functions.poehali.dev/fee936e7-7794-4f0a-b8f3-73e64570ada5', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bot_id: bot.id,
-          status: newStatus,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to toggle bot status');
-      }
-
-      toast({
-        title: 'Успешно',
-        description: `Бот ${newStatus === 'active' ? 'запущен' : 'остановлен'}`,
-      });
-
-      loadUserBots();
-    } catch (error) {
-      console.error('Failed to toggle bot status:', error);
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось изменить статус бота',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const openSettings = (bot: Bot) => {
     setSelectedBot(bot);
     setEditPaymentUrl(bot.payment_url || '');
