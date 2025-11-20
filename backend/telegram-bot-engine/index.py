@@ -154,6 +154,54 @@ def generate_qr_image(code_number: int) -> BytesIO:
     bio.seek(0)
     return bio
 
+def get_bot_settings(bot_id: int) -> Optional[Dict]:
+    '''Получить настройки бота'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    query = f'SELECT * FROM t_p5255237_telegram_bot_service.bots WHERE id = {bot_id}'
+    cursor.execute(query)
+    bot = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return dict(bot) if bot else None
+
+def save_privacy_consent(bot_id: int, user_id: int, telegram_user_id: int, consent_text: str, unique_code: str) -> bool:
+    '''Сохранить согласие на обработку персональных данных'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    consent_text_escaped = consent_text.replace("'", "''")
+    unique_code_escaped = unique_code.replace("'", "''")
+    
+    query = f'''INSERT INTO t_p5255237_telegram_bot_service.privacy_consents 
+               (bot_id, user_id, telegram_user_id, consent_text, user_unique_code, accepted_at)
+               VALUES ({bot_id}, {user_id}, {telegram_user_id}, '{consent_text_escaped}', '{unique_code_escaped}', CURRENT_TIMESTAMP)
+               ON CONFLICT (bot_id, user_id) DO UPDATE 
+               SET accepted_at = CURRENT_TIMESTAMP, consent_text = '{consent_text_escaped}' '''
+    
+    try:
+        cursor.execute(query)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        return False
+
+def check_privacy_consent(bot_id: int, user_id: int) -> bool:
+    '''Проверить, принял ли пользователь согласие'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    query = f'''SELECT id FROM t_p5255237_telegram_bot_service.privacy_consents 
+               WHERE bot_id = {bot_id} AND user_id = {user_id}'''
+    cursor.execute(query)
+    result = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return result is not None
+
 def create_main_menu_keyboard() -> ReplyKeyboardMarkup:
     '''Создает главное меню с кнопками'''
     keyboard = ReplyKeyboardMarkup(
@@ -161,6 +209,7 @@ def create_main_menu_keyboard() -> ReplyKeyboardMarkup:
             [KeyboardButton(text="🎁 Получить бесплатный ключ")],
             [KeyboardButton(text="🔐 Узнать про Тайную витрину")],
             [KeyboardButton(text="💎 Купить VIP-ключ")],
+            [KeyboardButton(text="📄 Согласие на обработку данных")],
             [KeyboardButton(text="❓ Помощь")]
         ],
         resize_keyboard=True
@@ -410,13 +459,110 @@ async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext,
     
     await message.answer(text, reply_markup=keyboard)
 
+async def handle_privacy_policy(message: types.Message, bot_id: int):
+    '''Показать политику конфиденциальности'''
+    bot_settings = get_bot_settings(bot_id)
+    user_id = register_telegram_user(bot_id, message.from_user)
+    
+    privacy_text = bot_settings.get('privacy_policy_text') if bot_settings else None
+    if not privacy_text:
+        privacy_text = (
+            "📄 Политика конфиденциальности и обработки персональных данных\n\n"
+            "1. Общие положения\n"
+            "Настоящая Политика конфиденциальности определяет порядок обработки и защиты персональных данных пользователей бота.\n\n"
+            "2. Персональные данные\n"
+            "Мы собираем: имя, фамилию, номер телефона, Telegram ID.\n\n"
+            "3. Цели обработки\n"
+            "- Идентификация пользователя\n"
+            "- Предоставление доступа к услугам\n"
+            "- Уведомления о статусе заказа\n\n"
+            "4. Хранение данных\n"
+            "Данные хранятся на защищенных серверах и не передаются третьим лицам.\n\n"
+            "5. Ваши права\n"
+            "Вы можете запросить удаление своих данных, связавшись с администратором.\n\n"
+            "Используя бота, вы соглашаетесь с данной политикой конфиденциальности."
+        )
+    
+    has_consent = check_privacy_consent(bot_id, user_id)
+    
+    if has_consent:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Согласие уже принято", callback_data="consent_accepted")],
+            [InlineKeyboardButton(text="🔙 В главное меню", callback_data="main_menu")]
+        ])
+    else:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Принимаю соглашение", callback_data="accept_privacy")],
+            [InlineKeyboardButton(text="🔙 В главное меню", callback_data="main_menu")]
+        ])
+    
+    await message.answer(privacy_text, reply_markup=keyboard)
+
+async def handle_accept_privacy(callback: types.CallbackQuery, bot_id: int, bot: Bot):
+    '''Обработка принятия соглашения'''
+    user_id = register_telegram_user(bot_id, callback.from_user)
+    telegram_user_id = callback.from_user.id
+    
+    bot_settings = get_bot_settings(bot_id)
+    privacy_text = bot_settings.get('privacy_policy_text', 'Согласие на обработку персональных данных')
+    
+    unique_code = f"USER_{telegram_user_id}_{bot_id}"
+    
+    success = save_privacy_consent(bot_id, user_id, telegram_user_id, privacy_text, unique_code)
+    
+    if success:
+        await callback.message.edit_text(
+            "✅ Спасибо! Ваше согласие принято и сохранено.\n\n"
+            f"Ваш уникальный код: {unique_code}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 В главное меню", callback_data="main_menu")]
+            ])
+        )
+        
+        owner_telegram_id = 718091347
+        admin_telegram_id = 500136108
+        
+        username = callback.from_user.username or "без username"
+        first_name = callback.from_user.first_name or ""
+        last_name = callback.from_user.last_name or ""
+        full_name = f"{first_name} {last_name}".strip()
+        
+        notification_text = (
+            f"🔔 Новое согласие на обработку персональных данных\n\n"
+            f"Пользователь: {full_name}\n"
+            f"Username: @{username}\n"
+            f"Telegram ID: {telegram_user_id}\n"
+            f"Уникальный код: {unique_code}\n"
+            f"Время: {asyncio.get_event_loop().time()}"
+        )
+        
+        try:
+            await bot.send_message(owner_telegram_id, notification_text)
+        except:
+            pass
+        
+        try:
+            await bot.send_message(admin_telegram_id, notification_text)
+        except:
+            pass
+    else:
+        await callback.message.edit_text(
+            "❌ Произошла ошибка при сохранении согласия. Попробуйте позже.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 В главное меню", callback_data="main_menu")]
+            ])
+        )
+    
+    await callback.answer()
+
 async def handle_help(message: types.Message):
     '''Помощь пользователю'''
     text = (
         "❓ Как пользоваться ботом:\n\n"
         "🎁 Получить бесплатный ключ - выдает QR-код (номера 1-500)\n"
         "🔐 Узнать про Тайную витрину - информация о закрытой распродаже\n"
-        "💎 Купить VIP-ключ - получить доступ к эксклюзивным товарам\n\n"
+        "💎 Купить VIP-ключ - получить доступ к эксклюзивным товарам\n"
+        "📄 Согласие на обработку данных - политика конфиденциальности\n\n"
         "По всем вопросам пишите в поддержку."
     )
     await message.answer(text)
@@ -582,6 +728,10 @@ async def callback_handler(callback: types.CallbackQuery, bot_id: int, state: FS
         await handle_buy_vip(callback.message, bot_id, state, bot)
     elif callback.data == "start_payment_form":
         await start_payment_form(callback, state)
+    elif callback.data == "accept_privacy":
+        await handle_accept_privacy(callback, bot_id, bot)
+    elif callback.data == "consent_accepted":
+        await callback.answer("Вы уже приняли соглашение ранее", show_alert=True)
     elif callback.data == "main_menu":
         await cmd_start(callback.message, bot_id)
         await state.clear()
@@ -610,6 +760,10 @@ async def run_bot(bot_data: Dict):
     @dp.message(F.text == "💎 Купить VIP-ключ")
     async def buy_vip_handler(message: types.Message, state: FSMContext):
         await handle_buy_vip(message, bot_id, state, bot)
+    
+    @dp.message(F.text == "📄 Согласие на обработку данных")
+    async def privacy_handler(message: types.Message):
+        await handle_privacy_policy(message, bot_id)
     
     @dp.message(F.text == "❓ Помощь")
     async def help_handler(message: types.Message):
