@@ -159,6 +159,39 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
     }
   };
 
+  const handleReinstallWebhook = async (bot: Bot) => {
+    try {
+      const response = await fetch('https://functions.poehali.dev/5de84ef3-0564-49a9-95a1-05f3de4ba313', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bot_id: bot.id,
+          action: 'setup',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reinstall webhook');
+      }
+
+      toast({
+        title: 'Webhook переустановлен',
+        description: `Webhook для бота "${bot.name}" успешно переустановлен`,
+      });
+    } catch (error) {
+      console.error('Failed to reinstall webhook:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось переустановить webhook',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const openSettings = (bot: Bot) => {
     setSelectedBot(bot);
     setEditPaymentUrl(bot.payment_url || '');
@@ -329,6 +362,15 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
                       >
                         <Icon name={bot.status === 'active' ? 'Square' : 'Play'} size={16} className="mr-1" />
                         {bot.status === 'active' ? 'Остановить' : 'Запустить'}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleReinstallWebhook(bot)}
+                        title="Переустановить webhook"
+                      >
+                        <Icon name="RefreshCw" size={16} className="mr-1" />
+                        Webhook
                       </Button>
                       <Button
                         variant="outline"
