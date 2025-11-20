@@ -93,6 +93,8 @@ const BotSettingsDialog = ({
   setEditPrivacyConsentEnabled,
   editPrivacyConsentText,
   setEditPrivacyConsentText,
+  editTelegramToken,
+  setEditTelegramToken,
   editVipPromoEnabled,
   setEditVipPromoEnabled,
   editVipPromoStartDate,
