@@ -336,11 +336,19 @@ async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext,
             
             if qr_key:
                 qr_image = generate_qr_image(qr_key['code_number'])
-                text = (
-                    f"✅ Ключ оплачен! Спасибо за покупку!\n\n"
-                    f"💎 Ваш VIP QR-код №{qr_key['code_number']}\n\n"
-                    f"Покажите этот код на кассе для получения доступа к VIP-товарам"
-                )
+                
+                bot_settings = get_bot_settings(bot_id)
+                success_message_template = bot_settings.get('vip_success_message') if bot_settings else None
+                
+                if success_message_template:
+                    text = success_message_template.format(code_number=qr_key['code_number'])
+                else:
+                    text = (
+                        f"✅ Ключ оплачен! Спасибо за покупку!\n\n"
+                        f"💎 Ваш VIP QR-код №{qr_key['code_number']}\n\n"
+                        f"Покажите этот код на кассе для получения доступа к VIP-товарам"
+                    )
+                
                 await message.answer_photo(
                     photo=types.BufferedInputFile(qr_image.read(), filename=f"vip_key_{qr_key['code_number']}.png"),
                     caption=text
@@ -374,11 +382,19 @@ async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext,
                     
                     if qr_key:
                         qr_image = generate_qr_image(qr_key['code_number'])
-                        text = (
-                            f"✅ Ключ оплачен! Спасибо за покупку!\n\n"
-                            f"💎 Ваш VIP QR-код №{qr_key['code_number']}\n\n"
-                            f"Покажите этот код на кассе для получения доступа к VIP-товарам"
-                        )
+                        
+                        bot_settings = get_bot_settings(bot_id)
+                        success_message_template = bot_settings.get('vip_success_message') if bot_settings else None
+                        
+                        if success_message_template:
+                            text = success_message_template.format(code_number=qr_key['code_number'])
+                        else:
+                            text = (
+                                f"✅ Ключ оплачен! Спасибо за покупку!\n\n"
+                                f"💎 Ваш VIP QR-код №{qr_key['code_number']}\n\n"
+                                f"Покажите этот код на кассе для получения доступа к VIP-товарам"
+                            )
+                        
                         await message.answer_photo(
                             photo=types.BufferedInputFile(qr_image.read(), filename=f"vip_key_{qr_key['code_number']}.png"),
                             caption=text
@@ -786,11 +802,17 @@ async def check_payment_status_loop(bot: Bot, chat_id: int, order_id: str, bot_i
                     if qr_key:
                         qr_image = generate_qr_image(qr_key['code_number'])
                         
-                        text = (
-                            f"✅ Ключ оплачен! Спасибо за покупку!\n\n"
-                            f"💎 Ваш VIP QR-код №{qr_key['code_number']}\n\n"
-                            f"Покажите этот код на кассе для получения доступа к VIP-товарам"
-                        )
+                        bot_settings = get_bot_settings(bot_id)
+                        success_message_template = bot_settings.get('vip_success_message') if bot_settings else None
+                        
+                        if success_message_template:
+                            text = success_message_template.format(code_number=qr_key['code_number'])
+                        else:
+                            text = (
+                                f"✅ Ключ оплачен! Спасибо за покупку!\n\n"
+                                f"💎 Ваш VIP QR-код №{qr_key['code_number']}\n\n"
+                                f"Покажите этот код на кассе для получения доступа к VIP-товарам"
+                            )
                         
                         await bot.send_photo(
                             chat_id=chat_id,
