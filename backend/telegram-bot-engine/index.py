@@ -262,6 +262,8 @@ async def handle_free_key(message: types.Message, bot_id: int):
     bot_settings = get_bot_settings(bot_id)
     message_texts = bot_settings.get('message_texts', {}) if bot_settings else {}
     
+    print(f"[DEBUG] Bot {bot_id} message_texts: {message_texts}")
+    
     admin_note = ""
     if is_admin(bot_id, telegram_user_id):
         admin_note = "\n\n🔧 Режим администратора: ключ НЕ помечен как использованный"
