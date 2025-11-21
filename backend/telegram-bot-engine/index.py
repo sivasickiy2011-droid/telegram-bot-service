@@ -555,6 +555,50 @@ async def handle_accept_privacy(callback: types.CallbackQuery, bot_id: int, bot:
     
     await callback.answer()
 
+async def handle_accept_privacy_payment(callback: types.CallbackQuery, bot_id: int, bot: Bot, state: FSMContext):
+    '''Обработка принятия согласия при оплате'''
+    user_id = register_telegram_user(bot_id, callback.from_user)
+    telegram_user_id = callback.from_user.id
+    
+    bot_settings = get_bot_settings(bot_id)
+    privacy_text = bot_settings.get('privacy_policy_text', 'Согласие на обработку персональных данных')
+    
+    unique_code = f"USER_{telegram_user_id}_{bot_id}"
+    
+    success = save_privacy_consent(bot_id, user_id, telegram_user_id, privacy_text, unique_code)
+    
+    if success:
+        owner_telegram_id = 718091347
+        admin_telegram_id = 500136108
+        
+        username = callback.from_user.username or "без username"
+        first_name = callback.from_user.first_name or ""
+        last_name = callback.from_user.last_name or ""
+        full_name = f"{first_name} {last_name}".strip()
+        
+        notification_text = (
+            f"🔔 Новое согласие на обработку данных (при оплате)\n\n"
+            f"Пользователь: {full_name}\n"
+            f"Username: @{username}\n"
+            f"Telegram ID: {telegram_user_id}\n"
+            f"Уникальный код: {unique_code}"
+        )
+        
+        try:
+            await bot.send_message(owner_telegram_id, notification_text)
+        except:
+            pass
+        
+        try:
+            await bot.send_message(admin_telegram_id, notification_text)
+        except:
+            pass
+    
+    await callback.message.answer("✅ Согласие принято. Теперь введите ваши данные для оплаты.")
+    await callback.message.answer("📝 Введите вашу *Фамилию*:", parse_mode='Markdown')
+    await state.set_state(BotStates.waiting_for_last_name)
+    await callback.answer()
+
 async def handle_help(message: types.Message):
     '''Помощь пользователю'''
     text = (
@@ -569,6 +613,49 @@ async def handle_help(message: types.Message):
 
 async def start_payment_form(callback: types.CallbackQuery, state: FSMContext):
     '''Начало заполнения формы для оплаты'''
+    user_data = await state.get_data()
+    bot_id = user_data.get('bot_id')
+    telegram_user_id = callback.from_user.id
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    query = f"SELECT require_privacy_consent, privacy_policy_text FROM t_p5255237_telegram_bot_service.bots WHERE id = {bot_id}"
+    cursor.execute(query)
+    bot_settings = cursor.fetchone()
+    
+    if bot_settings and bot_settings.get('require_privacy_consent'):
+        consent_query = f"""SELECT id FROM t_p5255237_telegram_bot_service.privacy_consents 
+                           WHERE bot_id = {bot_id} AND telegram_user_id = {telegram_user_id}"""
+        cursor.execute(consent_query)
+        consent = cursor.fetchone()
+        
+        if not consent:
+            privacy_text = bot_settings.get('privacy_policy_text') or 'Политика конфиденциальности не указана'
+            
+            max_length = 3500
+            if len(privacy_text) > max_length:
+                privacy_text = privacy_text[:max_length] + '...'
+            
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Принимаю соглашение", callback_data="accept_privacy_payment")],
+                [InlineKeyboardButton(text="❌ Отмена", callback_data="main_menu")]
+            ])
+            
+            await callback.message.answer(
+                f"📄 *Согласие на обработку персональных данных*\n\n{privacy_text}\n\n"
+                f"Для продолжения оплаты необходимо принять соглашение.",
+                parse_mode='Markdown',
+                reply_markup=keyboard
+            )
+            cursor.close()
+            conn.close()
+            await callback.answer()
+            return
+    
+    cursor.close()
+    conn.close()
+    
     await callback.message.answer("📝 Введите вашу *Фамилию*:", parse_mode='Markdown')
     await state.set_state(BotStates.waiting_for_last_name)
     await callback.answer()
@@ -730,6 +817,8 @@ async def callback_handler(callback: types.CallbackQuery, bot_id: int, state: FS
         await start_payment_form(callback, state)
     elif callback.data == "accept_privacy":
         await handle_accept_privacy(callback, bot_id, bot)
+    elif callback.data == "accept_privacy_payment":
+        await handle_accept_privacy_payment(callback, bot_id, bot, state)
     elif callback.data == "consent_accepted":
         await callback.answer("Вы уже приняли соглашение ранее", show_alert=True)
     elif callback.data == "main_menu":
