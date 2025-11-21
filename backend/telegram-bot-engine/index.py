@@ -67,18 +67,26 @@ def register_telegram_user(bot_id: int, user: types.User) -> int:
     conn.close()
     return user_id
 
-def get_free_qr_key(bot_id: int, user_id: int) -> Optional[Dict]:
+def get_free_qr_key(bot_id: int, user_id: int, telegram_user_id: int = None) -> Optional[Dict]:
     '''Получить свободный бесплатный QR-ключ'''
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
-    query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
-               WHERE bot_id = {bot_id} AND code_type = 'free' AND is_used = false 
-               ORDER BY code_number LIMIT 1'''
+    is_user_admin = is_admin(bot_id, telegram_user_id) if telegram_user_id else False
+    
+    if is_user_admin:
+        query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
+                   WHERE bot_id = {bot_id} AND code_type = 'free'
+                   ORDER BY code_number LIMIT 1'''
+    else:
+        query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
+                   WHERE bot_id = {bot_id} AND code_type = 'free' AND is_used = false 
+                   ORDER BY code_number LIMIT 1'''
+    
     cursor.execute(query)
     qr_code = cursor.fetchone()
     
-    if qr_code:
+    if qr_code and not is_user_admin:
         update_query = f'''UPDATE t_p5255237_telegram_bot_service.qr_codes 
                           SET is_used = true, used_by_user_id = {user_id}, used_at = CURRENT_TIMESTAMP 
                           WHERE id = {qr_code['id']}'''
@@ -89,18 +97,26 @@ def get_free_qr_key(bot_id: int, user_id: int) -> Optional[Dict]:
     conn.close()
     return dict(qr_code) if qr_code else None
 
-def get_vip_qr_key(bot_id: int, user_id: int) -> Optional[Dict]:
+def get_vip_qr_key(bot_id: int, user_id: int, telegram_user_id: int = None) -> Optional[Dict]:
     '''Получить свободный VIP QR-ключ'''
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
-    query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
-               WHERE bot_id = {bot_id} AND code_type = 'paid' AND is_used = false 
-               ORDER BY code_number LIMIT 1'''
+    is_user_admin = is_admin(bot_id, telegram_user_id) if telegram_user_id else False
+    
+    if is_user_admin:
+        query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
+                   WHERE bot_id = {bot_id} AND code_type = 'paid'
+                   ORDER BY code_number LIMIT 1'''
+    else:
+        query = f'''SELECT * FROM t_p5255237_telegram_bot_service.qr_codes 
+                   WHERE bot_id = {bot_id} AND code_type = 'paid' AND is_used = false 
+                   ORDER BY code_number LIMIT 1'''
+    
     cursor.execute(query)
     qr_code = cursor.fetchone()
     
-    if qr_code:
+    if qr_code and not is_user_admin:
         update_query = f'''UPDATE t_p5255237_telegram_bot_service.qr_codes 
                           SET is_used = true, used_by_user_id = {user_id}, used_at = CURRENT_TIMESTAMP 
                           WHERE id = {qr_code['id']}'''
@@ -164,6 +180,14 @@ def get_bot_settings(bot_id: int) -> Optional[Dict]:
     cursor.close()
     conn.close()
     return dict(bot) if bot else None
+
+def is_admin(bot_id: int, telegram_user_id: int) -> bool:
+    '''Проверка является ли пользователь администратором бота'''
+    bot_settings = get_bot_settings(bot_id)
+    if not bot_settings:
+        return False
+    admin_ids = bot_settings.get('admin_telegram_ids', [])
+    return telegram_user_id in admin_ids
 
 def save_privacy_consent(bot_id: int, user_id: int, telegram_user_id: int, consent_text: str, unique_code: str) -> bool:
     '''Сохранить согласие на обработку персональных данных'''
@@ -232,10 +256,15 @@ async def cmd_start(message: types.Message, bot_id: int):
 async def handle_free_key(message: types.Message, bot_id: int):
     '''Обработка запроса бесплатного ключа'''
     user_id = register_telegram_user(bot_id, message.from_user)
-    qr_key = get_free_qr_key(bot_id, user_id)
+    telegram_user_id = message.from_user.id
+    qr_key = get_free_qr_key(bot_id, user_id, telegram_user_id)
     
     bot_settings = get_bot_settings(bot_id)
     message_texts = bot_settings.get('message_texts', {}) if bot_settings else {}
+    
+    admin_note = ""
+    if is_admin(bot_id, telegram_user_id):
+        admin_note = "\n\n🔧 Режим администратора: ключ НЕ помечен как использованный"
     
     if qr_key:
         qr_image = generate_qr_image(qr_key['code_number'])
@@ -246,7 +275,7 @@ async def handle_free_key(message: types.Message, bot_id: int):
             "• Участвуете в розыгрыше подарка\n"
             "• Получаете право на участие в Закрытой распродаже"
         )
-        text = text_template.format(code_number=qr_key['code_number'])
+        text = text_template.format(code_number=qr_key['code_number']) + admin_note
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔐 Что такое Тайная витрина?", callback_data="secret_shop")],
@@ -332,7 +361,7 @@ async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext,
         
         if status == 'CONFIRMED':
             # Платёж уже подтверждён, выдаём ключ если ещё не выдан
-            qr_key = get_vip_qr_key(bot_id, user_id)
+            qr_key = get_vip_qr_key(bot_id, user_id, telegram_user_id)
             
             if qr_key:
                 qr_image = generate_qr_image(qr_key['code_number'])
@@ -378,7 +407,7 @@ async def handle_buy_vip(message: types.Message, bot_id: int, state: FSMContext,
                 
                 if result.get('confirmed'):
                     # Платёж подтверждён! Выдаём VIP-ключ
-                    qr_key = get_vip_qr_key(bot_id, user_id)
+                    qr_key = get_vip_qr_key(bot_id, user_id, telegram_user_id)
                     
                     if qr_key:
                         qr_image = generate_qr_image(qr_key['code_number'])
@@ -797,7 +826,7 @@ async def check_payment_status_loop(bot: Bot, chat_id: int, order_id: str, bot_i
                 
                 if result.get('confirmed'):
                     # Платёж подтверждён! Выдаём VIP-ключ
-                    qr_key = get_vip_qr_key(bot_id, user_id)
+                    qr_key = get_vip_qr_key(bot_id, user_id, telegram_user_id)
                     
                     if qr_key:
                         qr_image = generate_qr_image(qr_key['code_number'])
