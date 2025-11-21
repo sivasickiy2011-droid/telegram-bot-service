@@ -234,15 +234,19 @@ async def handle_free_key(message: types.Message, bot_id: int):
     user_id = register_telegram_user(bot_id, message.from_user)
     qr_key = get_free_qr_key(bot_id, user_id)
     
+    bot_settings = get_bot_settings(bot_id)
+    message_texts = bot_settings.get('message_texts', {}) if bot_settings else {}
+    
     if qr_key:
         qr_image = generate_qr_image(qr_key['code_number'])
         
-        text = (
-            f"✅ Ваш бесплатный ключ №{qr_key['code_number']}\n\n"
-            f"Покажите этот QR-код на кассе:\n"
-            f"• Участвуете в розыгрыше подарка\n"
-            f"• Получаете право на участие в Закрытой распродаже"
+        text_template = message_texts.get('free_key_success', 
+            "✅ Ваш бесплатный ключ №{code_number}\n\n"
+            "Покажите этот QR-код на кассе:\n"
+            "• Участвуете в розыгрыше подарка\n"
+            "• Получаете право на участие в Закрытой распродаже"
         )
+        text = text_template.format(code_number=qr_key['code_number'])
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔐 Что такое Тайная витрина?", callback_data="secret_shop")],
@@ -255,7 +259,7 @@ async def handle_free_key(message: types.Message, bot_id: int):
             reply_markup=keyboard
         )
     else:
-        text = (
+        text = message_texts.get('free_key_empty',
             "😔 Бесплатные ключи на сегодня закончились.\n\n"
             "Но вы всё ещё можете получить VIP-ключ и попасть в Тайную витрину!"
         )
