@@ -241,7 +241,7 @@ async def handle_free_key(message: types.Message, bot_id: int):
             f"✅ Ваш бесплатный ключ №{qr_key['code_number']}\n\n"
             f"Покажите этот QR-код на кассе:\n"
             f"• Участвуете в розыгрыше подарка\n"
-            f"• Получаете право на участие в Чёрной пятнице"
+            f"• Получаете право на участие в Закрытой распродаже"
         )
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
