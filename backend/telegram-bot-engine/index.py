@@ -226,18 +226,27 @@ def check_privacy_consent(bot_id: int, user_id: int) -> bool:
     conn.close()
     return result is not None
 
-def create_main_menu_keyboard(payment_enabled: bool = True) -> ReplyKeyboardMarkup:
+def create_main_menu_keyboard(payment_enabled: bool = True, button_texts: dict = None) -> ReplyKeyboardMarkup:
     '''Создает главное меню с кнопками'''
+    if button_texts is None:
+        button_texts = {}
+    
+    free_key_text = button_texts.get('free_key', '🎁 Получить бесплатный ключ')
     keyboard_buttons = [
-        [KeyboardButton(text="🎁 Получить бесплатный ключ")],
+        [KeyboardButton(text=free_key_text)],
     ]
     
     if payment_enabled:
+        secret_shop_text = button_texts.get('secret_shop', '🔐 Узнать про Тайную витрину')
+        buy_vip_text = button_texts.get('buy_vip', '💎 Купить VIP-ключ')
+        privacy_text = button_texts.get('privacy', '📄 Согласие на обработку данных')
+        help_text = button_texts.get('help', '❓ Помощь')
+        
         keyboard_buttons.extend([
-            [KeyboardButton(text="🔐 Узнать про Тайную витрину")],
-            [KeyboardButton(text="💎 Купить VIP-ключ")],
-            [KeyboardButton(text="📄 Согласие на обработку данных")],
-            [KeyboardButton(text="❓ Помощь")]
+            [KeyboardButton(text=secret_shop_text)],
+            [KeyboardButton(text=buy_vip_text)],
+            [KeyboardButton(text=privacy_text)],
+            [KeyboardButton(text=help_text)]
         ])
     
     keyboard = ReplyKeyboardMarkup(
@@ -252,15 +261,17 @@ async def cmd_start(message: types.Message, bot_id: int):
     
     bot_settings = get_bot_settings(bot_id)
     payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
+    message_texts = bot_settings.get('message_texts', {}) if bot_settings else {}
+    button_texts = bot_settings.get('button_texts', {}) if bot_settings else {}
     
-    welcome_text = (
+    welcome_text = message_texts.get('welcome', 
         "🚀 Привет! Я бот POLYTOPE.\n\n"
         "Здесь вы можете получить бесплатный ключ и VIP-ключ для доступа к Тайной витрине "
         "на нашей закрытой распродаже с 21 по 23 ноября.\n\n"
         "Выберите действие:"
     )
     
-    await message.answer(welcome_text, reply_markup=create_main_menu_keyboard(payment_enabled))
+    await message.answer(welcome_text, reply_markup=create_main_menu_keyboard(payment_enabled, button_texts))
 
 async def handle_free_key(message: types.Message, bot_id: int):
     '''Обработка запроса бесплатного ключа'''
@@ -916,42 +927,6 @@ async def run_bot(bot_data: Dict):
         await cmd_start(message, bot_id)
         await state.clear()
     
-    @dp.message(F.text == "🎁 Получить бесплатный ключ")
-    async def free_key_handler(message: types.Message):
-        await handle_free_key(message, bot_id)
-    
-    @dp.message(F.text == "🔐 Узнать про Тайную витрину")
-    async def secret_shop_handler(message: types.Message):
-        bot_settings = get_bot_settings(bot_id)
-        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
-        if not payment_enabled:
-            return
-        await handle_secret_shop(message, bot_id)
-    
-    @dp.message(F.text == "💎 Купить VIP-ключ")
-    async def buy_vip_handler(message: types.Message, state: FSMContext):
-        bot_settings = get_bot_settings(bot_id)
-        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
-        if not payment_enabled:
-            return
-        await handle_buy_vip(message, bot_id, state, bot)
-    
-    @dp.message(F.text == "📄 Согласие на обработку данных")
-    async def privacy_handler(message: types.Message):
-        bot_settings = get_bot_settings(bot_id)
-        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
-        if not payment_enabled:
-            return
-        await handle_privacy_policy(message, bot_id)
-    
-    @dp.message(F.text == "❓ Помощь")
-    async def help_handler(message: types.Message):
-        bot_settings = get_bot_settings(bot_id)
-        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
-        if not payment_enabled:
-            return
-        await handle_help(message)
-    
     @dp.message(BotStates.waiting_for_last_name)
     async def last_name_handler(message: types.Message, state: FSMContext):
         await process_last_name(message, state)
@@ -963,6 +938,42 @@ async def run_bot(bot_data: Dict):
     @dp.message(BotStates.waiting_for_phone)
     async def phone_handler(message: types.Message, state: FSMContext):
         await process_phone_and_create_payment(message, state, bot)
+    
+    @dp.message(F.text)
+    async def text_handler(message: types.Message, state: FSMContext):
+        bot_settings = get_bot_settings(bot_id)
+        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
+        button_texts = bot_settings.get('button_texts', {}) if bot_settings else {}
+        
+        text = message.text
+        
+        free_key_text = button_texts.get('free_key', '🎁 Получить бесплатный ключ')
+        if text == free_key_text or text == '🎁 Получить бесплатный ключ':
+            await handle_free_key(message, bot_id)
+            return
+        
+        if not payment_enabled:
+            return
+        
+        secret_shop_text = button_texts.get('secret_shop', '🔐 Узнать про Тайную витрину')
+        if text == secret_shop_text or text == '🔐 Узнать про Тайную витрину':
+            await handle_secret_shop(message, bot_id)
+            return
+        
+        buy_vip_text = button_texts.get('buy_vip', '💎 Купить VIP-ключ')
+        if text == buy_vip_text or text == '💎 Купить VIP-ключ':
+            await handle_buy_vip(message, bot_id, state, bot)
+            return
+        
+        privacy_text = button_texts.get('privacy', '📄 Согласие на обработку данных')
+        if text == privacy_text or text == '📄 Согласие на обработку данных':
+            await handle_privacy_policy(message, bot_id)
+            return
+        
+        help_text = button_texts.get('help', '❓ Помощь')
+        if text == help_text or text == '❓ Помощь':
+            await handle_help(message)
+            return
     
     @dp.callback_query()
     async def callback_handler_wrapper(callback: types.CallbackQuery, state: FSMContext):
