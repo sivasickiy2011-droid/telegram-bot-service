@@ -58,6 +58,8 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedBot, setSelectedBot] = useState<Bot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selectedBotIds, setSelectedBotIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   const [editPaymentUrl, setEditPaymentUrl] = useState('');
@@ -257,6 +259,98 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
     }
   };
 
+  const handleDeleteBot = async (botId: string) => {
+    if (!confirm('Вы уверены, что хотите удалить этого бота?')) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch('https://functions.poehali.dev/fee936e7-7794-4f0a-b8f3-73e64570ada5', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bot_id: botId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete bot');
+      }
+
+      toast({
+        title: 'Успешно',
+        description: 'Бот удалён',
+      });
+
+      loadUserBots();
+    } catch (error) {
+      console.error('Failed to delete bot:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить бота',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedBotIds.size === 0) return;
+    if (!confirm(`Вы уверены, что хотите удалить выбранные боты (${selectedBotIds.size})?`)) return;
+
+    setIsDeleting(true);
+    try {
+      const deletePromises = Array.from(selectedBotIds).map(botId =>
+        fetch('https://functions.poehali.dev/fee936e7-7794-4f0a-b8f3-73e64570ada5', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ bot_id: botId }),
+        })
+      );
+
+      await Promise.all(deletePromises);
+
+      toast({
+        title: 'Успешно',
+        description: `Удалено ботов: ${selectedBotIds.size}`,
+      });
+
+      setSelectedBotIds(new Set());
+      loadUserBots();
+    } catch (error) {
+      console.error('Failed to delete bots:', error);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить некоторые боты',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleBotSelection = (botId: string) => {
+    setSelectedBotIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(botId)) {
+        newSet.delete(botId);
+      } else {
+        newSet.add(botId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedBotIds.size === bots.length) {
+      setSelectedBotIds(new Set());
+    } else {
+      setSelectedBotIds(new Set(bots.map(b => b.id)));
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -307,16 +401,49 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
               <p className="text-muted-foreground">У пользователя пока нет ботов</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {bots.map((bot) => (
-                <Card key={bot.id} className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={`w-3 h-3 rounded-full ${getStatusColor(bot.status)}`} />
-                        <h3 className="text-lg font-semibold">{bot.name}</h3>
-                        {getModerationBadge(bot.moderationStatus)}
-                      </div>
+            <>
+              {bots.length > 0 && (
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg mb-4">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedBotIds.size === bots.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {selectedBotIds.size > 0 ? `Выбрано: ${selectedBotIds.size}` : 'Выбрать всех'}
+                    </span>
+                  </div>
+                  {selectedBotIds.size > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteSelected}
+                      disabled={isDeleting}
+                    >
+                      <Icon name={isDeleting ? 'Loader2' : 'Trash2'} size={16} className={isDeleting ? 'animate-spin' : ''} />
+                      <span className="ml-2">Удалить выбранные</span>
+                    </Button>
+                  )}
+                </div>
+              )}
+              <div className="space-y-4">
+                {bots.map((bot) => (
+                  <Card key={bot.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedBotIds.has(bot.id)}
+                        onChange={() => toggleBotSelection(bot.id)}
+                        className="w-4 h-4 mt-1 cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`w-3 h-3 rounded-full ${getStatusColor(bot.status)}`} />
+                          <h3 className="text-lg font-semibold">{bot.name}</h3>
+                          {getModerationBadge(bot.moderationStatus)}
+                        </div>
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
                         <div>
@@ -353,39 +480,50 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
                       )}
                     </div>
 
-                    <div className="flex gap-2 ml-4">
-                      <Button
-                        variant={bot.status === 'active' ? 'destructive' : 'default'}
-                        size="sm"
-                        onClick={() => handleToggleBotStatus(bot)}
-                        title={bot.status === 'active' ? 'Остановить бота' : 'Запустить бота'}
-                      >
-                        <Icon name={bot.status === 'active' ? 'Square' : 'Play'} size={16} className="mr-1" />
-                        {bot.status === 'active' ? 'Остановить' : 'Запустить'}
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleReinstallWebhook(bot)}
-                        title="Переустановить webhook"
-                      >
-                        <Icon name="RefreshCw" size={16} className="mr-1" />
-                        Webhook
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openSettings(bot)}
-                        title="Редактировать настройки"
-                      >
-                        <Icon name="Settings" size={16} className="mr-1" />
-                        Настройки
-                      </Button>
+                      <div className="flex gap-2 ml-4">
+                        <Button
+                          variant={bot.status === 'active' ? 'destructive' : 'default'}
+                          size="sm"
+                          onClick={() => handleToggleBotStatus(bot)}
+                          title={bot.status === 'active' ? 'Остановить бота' : 'Запустить бота'}
+                        >
+                          <Icon name={bot.status === 'active' ? 'Square' : 'Play'} size={16} className="mr-1" />
+                          {bot.status === 'active' ? 'Остановить' : 'Запустить'}
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleReinstallWebhook(bot)}
+                          title="Переустановить webhook"
+                        >
+                          <Icon name="RefreshCw" size={16} className="mr-1" />
+                          Webhook
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openSettings(bot)}
+                          title="Редактировать настройки"
+                        >
+                          <Icon name="Settings" size={16} className="mr-1" />
+                          Настройки
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteBot(bot.id)}
+                          disabled={isDeleting}
+                          title="Удалить бота"
+                        >
+                          <Icon name="Trash2" size={16} />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
           )}
         </DialogContent>
       </Dialog>

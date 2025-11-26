@@ -226,16 +226,22 @@ def check_privacy_consent(bot_id: int, user_id: int) -> bool:
     conn.close()
     return result is not None
 
-def create_main_menu_keyboard() -> ReplyKeyboardMarkup:
+def create_main_menu_keyboard(payment_enabled: bool = True) -> ReplyKeyboardMarkup:
     '''Создает главное меню с кнопками'''
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="🎁 Получить бесплатный ключ")],
+    keyboard_buttons = [
+        [KeyboardButton(text="🎁 Получить бесплатный ключ")],
+    ]
+    
+    if payment_enabled:
+        keyboard_buttons.extend([
             [KeyboardButton(text="🔐 Узнать про Тайную витрину")],
             [KeyboardButton(text="💎 Купить VIP-ключ")],
             [KeyboardButton(text="📄 Согласие на обработку данных")],
             [KeyboardButton(text="❓ Помощь")]
-        ],
+        ])
+    
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=keyboard_buttons,
         resize_keyboard=True
     )
     return keyboard
@@ -244,6 +250,9 @@ async def cmd_start(message: types.Message, bot_id: int):
     '''Обработка команды /start'''
     user_id = register_telegram_user(bot_id, message.from_user)
     
+    bot_settings = get_bot_settings(bot_id)
+    payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
+    
     welcome_text = (
         "🚀 Привет! Я бот POLYTOPE.\n\n"
         "Здесь вы можете получить бесплатный ключ и VIP-ключ для доступа к Тайной витрине "
@@ -251,7 +260,7 @@ async def cmd_start(message: types.Message, bot_id: int):
         "Выберите действие:"
     )
     
-    await message.answer(welcome_text, reply_markup=create_main_menu_keyboard())
+    await message.answer(welcome_text, reply_markup=create_main_menu_keyboard(payment_enabled))
 
 async def handle_free_key(message: types.Message, bot_id: int):
     '''Обработка запроса бесплатного ключа'''
@@ -279,16 +288,28 @@ async def handle_free_key(message: types.Message, bot_id: int):
         )
         text = text_template.format(code_number=qr_key['code_number']) + admin_note
         
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🔐 Что такое Тайная витрина?", callback_data="secret_shop")],
-            [InlineKeyboardButton(text="💎 Купить VIP-ключ", callback_data="buy_vip")]
-        ])
+        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
+        keyboard_buttons = []
         
-        await message.answer_photo(
-            photo=types.BufferedInputFile(qr_image.read(), filename=f"key_{qr_key['code_number']}.png"),
-            caption=text,
-            reply_markup=keyboard
-        )
+        if payment_enabled:
+            keyboard_buttons.extend([
+                [InlineKeyboardButton(text="🔐 Что такое Тайная витрина?", callback_data="secret_shop")],
+                [InlineKeyboardButton(text="💎 Купить VIP-ключ", callback_data="buy_vip")]
+            ])
+        
+        keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons) if keyboard_buttons else None
+        
+        if keyboard:
+            await message.answer_photo(
+                photo=types.BufferedInputFile(qr_image.read(), filename=f"key_{qr_key['code_number']}.png"),
+                caption=text,
+                reply_markup=keyboard
+            )
+        else:
+            await message.answer_photo(
+                photo=types.BufferedInputFile(qr_image.read(), filename=f"key_{qr_key['code_number']}.png"),
+                caption=text
+            )
     else:
         text = message_texts.get('free_key_empty',
             "😔 Бесплатные ключи на сегодня закончились.\n\n"
