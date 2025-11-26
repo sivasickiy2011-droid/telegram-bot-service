@@ -865,6 +865,10 @@ async def handle_accept_privacy(callback: types.CallbackQuery, bot_id: int, bot:
     
     bot_settings = get_bot_settings(bot_id)
     privacy_text = bot_settings.get('privacy_policy_text', 'Согласие на обработку персональных данных')
+    bot_template = bot_settings.get('template', 'keys') if bot_settings else 'keys'
+    message_texts = bot_settings.get('message_texts', {}) if bot_settings else {}
+    button_texts = bot_settings.get('button_texts', {}) if bot_settings else {}
+    payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
     
     unique_code = f"USER_{telegram_user_id}_{bot_id}"
     
@@ -873,10 +877,7 @@ async def handle_accept_privacy(callback: types.CallbackQuery, bot_id: int, bot:
     if success:
         await callback.message.edit_text(
             "✅ Спасибо! Ваше согласие принято и сохранено.\n\n"
-            f"Ваш уникальный код: {unique_code}",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🔙 В главное меню", callback_data="main_menu")]
-            ])
+            f"Ваш уникальный код: {unique_code}"
         )
         
         owner_telegram_id = 718091347
@@ -905,6 +906,51 @@ async def handle_accept_privacy(callback: types.CallbackQuery, bot_id: int, bot:
             await bot.send_message(admin_telegram_id, notification_text)
         except:
             pass
+        
+        if bot_template == 'shop':
+            welcome_text = message_texts.get('welcome', 
+                "🛍 Добро пожаловать в наш магазин!\n\n"
+                "Здесь вы можете выбрать товары из каталога и оформить заказ.\n\n"
+                "Выберите действие:"
+            )
+            
+            keyboard = ReplyKeyboardMarkup(
+                keyboard=[
+                    [KeyboardButton(text="🛍️ Каталог товаров")],
+                    [KeyboardButton(text="🛒 Корзина")],
+                ],
+                resize_keyboard=True
+            )
+            await callback.message.answer(welcome_text, reply_markup=keyboard)
+        
+        elif bot_template == 'warehouse':
+            welcome_text = message_texts.get('welcome',
+                "🏭 Добро пожаловать в систему бронирования склада!\n\n"
+                "Здесь вы можете забронировать время для разгрузки товара.\n\n"
+                "📅 Рабочие часы: 8:00 - 18:00 (Пн-Пт)\n"
+                "⏱ Длительность слота: 60 минут\n\n"
+                "Выберите действие:"
+            )
+            
+            keyboard = ReplyKeyboardMarkup(
+                keyboard=[
+                    [KeyboardButton(text="📅 Забронировать время")],
+                    [KeyboardButton(text="📋 Мои бронирования")],
+                    [KeyboardButton(text="ℹ️ Информация")],
+                ],
+                resize_keyboard=True
+            )
+            await callback.message.answer(welcome_text, reply_markup=keyboard)
+        
+        else:
+            welcome_text = message_texts.get('welcome', 
+                "🚀 Привет! Я бот POLYTOPE.\n\n"
+                "Здесь вы можете получить бесплатный ключ и VIP-ключ для доступа к Тайной витрине "
+                "на нашей закрытой распродаже с 21 по 23 ноября.\n\n"
+                "Выберите действие:"
+            )
+            
+            await callback.message.answer(welcome_text, reply_markup=create_main_menu_keyboard(payment_enabled, button_texts))
     else:
         await callback.message.edit_text(
             "❌ Произошла ошибка при сохранении согласия. Попробуйте позже.",
