@@ -120,7 +120,9 @@ const BotSettingsDialog = ({
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full ${selectedBot?.template === 'shop' || selectedBot?.template === 'warehouse' ? 'grid-cols-6' : 'grid-cols-5'}`}>
+          <TabsList className={`grid w-full ${
+            selectedBot?.template === 'keys' ? 'grid-cols-5' : 'grid-cols-4'
+          }`}>
             <TabsTrigger value="token">
               <Icon name="Key" size={14} className="mr-2" />
               Токен
@@ -137,10 +139,12 @@ const BotSettingsDialog = ({
                 Склад
               </TabsTrigger>
             )}
-            <TabsTrigger value="payment">
-              <Icon name="CreditCard" size={14} className="mr-2" />
-              Оплата
-            </TabsTrigger>
+            {selectedBot?.template === 'keys' && (
+              <TabsTrigger value="payment">
+                <Icon name="CreditCard" size={14} className="mr-2" />
+                Оплата
+              </TabsTrigger>
+            )}
             <TabsTrigger value="texts">
               <Icon name="MessageSquare" size={14} className="mr-2" />
               Тексты
@@ -164,31 +168,34 @@ const BotSettingsDialog = ({
           
           {selectedBot?.template === 'warehouse' && <WarehouseManagementTab botId={selectedBot.id} />}
           
-          <PaymentSettingsTab
-            selectedBot={selectedBot}
-            editPaymentEnabled={editPaymentEnabled}
-            setEditPaymentEnabled={setEditPaymentEnabled}
-            editVipPrice={editVipPrice}
-            setEditVipPrice={setEditVipPrice}
-            editTbankTerminalKey={editTbankTerminalKey}
-            setEditTbankTerminalKey={setEditTbankTerminalKey}
-            editTbankPassword={editTbankPassword}
-            setEditTbankPassword={setEditTbankPassword}
-            editVipPromoEnabled={editVipPromoEnabled}
-            setEditVipPromoEnabled={setEditVipPromoEnabled}
-            editVipPromoStartDate={editVipPromoStartDate}
-            setEditVipPromoStartDate={setEditVipPromoStartDate}
-            editVipPromoEndDate={editVipPromoEndDate}
-            setEditVipPromoEndDate={setEditVipPromoEndDate}
-            editVipPurchaseMessage={editVipPurchaseMessage}
-            setEditVipPurchaseMessage={setEditVipPurchaseMessage}
-          />
+          {selectedBot?.template === 'keys' && (
+            <PaymentSettingsTab
+              selectedBot={selectedBot}
+              editPaymentEnabled={editPaymentEnabled}
+              setEditPaymentEnabled={setEditPaymentEnabled}
+              editVipPrice={editVipPrice}
+              setEditVipPrice={setEditVipPrice}
+              editTbankTerminalKey={editTbankTerminalKey}
+              setEditTbankTerminalKey={setEditTbankTerminalKey}
+              editTbankPassword={editTbankPassword}
+              setEditTbankPassword={setEditTbankPassword}
+              editVipPromoEnabled={editVipPromoEnabled}
+              setEditVipPromoEnabled={setEditVipPromoEnabled}
+              editVipPromoStartDate={editVipPromoStartDate}
+              setEditVipPromoStartDate={setEditVipPromoStartDate}
+              editVipPromoEndDate={editVipPromoEndDate}
+              setEditVipPromoEndDate={setEditVipPromoEndDate}
+              editVipPurchaseMessage={editVipPurchaseMessage}
+              setEditVipPurchaseMessage={setEditVipPurchaseMessage}
+            />
+          )}
           
           <TextsSettingsTab
             editButtonTexts={editButtonTexts}
             setEditButtonTexts={setEditButtonTexts}
             editMessageTexts={editMessageTexts}
             setEditMessageTexts={setEditMessageTexts}
+            template={selectedBot?.template}
           />
           
           <AdditionalSettingsTab
