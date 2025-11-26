@@ -122,41 +122,43 @@ const BotStatsDialog = ({
               </Card>
             </div>
             
-            <div className="border rounded-lg p-4 space-y-3">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Icon name="QrCode" size={16} />
-                QR-коды
-              </h3>
-              
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Всего создано:</span>
-                  <span className="font-medium">{botStats.qr_codes.total}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Использовано:</span>
-                  <span className="font-medium text-green-600">{botStats.qr_codes.used}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Доступно:</span>
-                  <span className="font-medium text-blue-600">{botStats.qr_codes.available}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">VIP кодов:</span>
-                  <span className="font-medium text-purple-600">{botStats.qr_codes.vip_total}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Бесплатных:</span>
-                  <span className="font-medium">{botStats.qr_codes.free_total}</span>
+            {selectedBot?.template === 'keys' && botStats.qr_codes && (
+              <div className="border rounded-lg p-4 space-y-3">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Icon name="QrCode" size={16} />
+                  QR-коды
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Всего создано:</span>
+                    <span className="font-medium">{botStats.qr_codes.total}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Использовано:</span>
+                    <span className="font-medium text-green-600">{botStats.qr_codes.used}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Доступно:</span>
+                    <span className="font-medium text-blue-600">{botStats.qr_codes.available}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">VIP кодов:</span>
+                    <span className="font-medium text-purple-600">{botStats.qr_codes.vip_total}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Бесплатных:</span>
+                    <span className="font-medium">{botStats.qr_codes.free_total}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             
-            {botStats.payment_enabled && (
+            {selectedBot?.template === 'keys' && botStats.payment_enabled && (
               <div className="border rounded-lg p-4 bg-green-500/5">
                 <h3 className="font-semibold flex items-center gap-2 mb-2">
                   <Icon name="CreditCard" size={16} />
-                  Платежи
+                  Платежи VIP-ключей
                 </h3>
                 <p className="text-xs text-muted-foreground mb-2">Платежная ссылка:</p>
                 <a 
@@ -189,8 +191,18 @@ const BotStatsDialog = ({
                             {user.username && <span className="text-muted-foreground ml-1">@{user.username}</span>}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            QR-кодов: {user.qr_codes_count}
-                            {user.qr_codes && <span className="ml-2">№{user.qr_codes}</span>}
+                            {selectedBot?.template === 'keys' && (
+                              <>
+                                QR-кодов: {user.qr_codes_count}
+                                {user.qr_codes && <span className="ml-2">№{user.qr_codes}</span>}
+                              </>
+                            )}
+                            {selectedBot?.template === 'shop' && (
+                              <>Заказов: {user.orders_count || 0}</>
+                            )}
+                            {selectedBot?.template === 'warehouse' && (
+                              <>Бронирований: {user.bookings_count || 0}</>
+                            )}
                           </p>
                         </div>
                       </div>
