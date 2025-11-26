@@ -47,12 +47,14 @@ class PostgresStorage(BaseStorage):
                    ON CONFLICT (bot_id, chat_id, user_id) 
                    DO UPDATE SET state = '{state_str_escaped}', updated_at = CURRENT_TIMESTAMP'''
             
+            print(f"[DEBUG] set_state query: {query[:200]}...")
             cursor.execute(query)
             conn.commit()
             cursor.close()
             conn.close()
         except Exception as e:
             print(f"[ERROR] set_state failed: {e}")
+            print(f"[ERROR] Query was: {query[:200] if 'query' in locals() else 'N/A'}...")
     
     async def get_state(self, key: StorageKey) -> Optional[str]:
         try:
@@ -81,12 +83,14 @@ class PostgresStorage(BaseStorage):
                    ON CONFLICT (bot_id, chat_id, user_id) 
                    DO UPDATE SET data = '{data_json}', updated_at = CURRENT_TIMESTAMP'''
             
+            print(f"[DEBUG] set_data query: {query[:200]}...")
             cursor.execute(query)
             conn.commit()
             cursor.close()
             conn.close()
         except Exception as e:
             print(f"[ERROR] set_data failed: {e}")
+            print(f"[ERROR] Query was: {query[:200] if 'query' in locals() else 'N/A'}...")
     
     async def get_data(self, key: StorageKey) -> Dict[str, Any]:
         try:
