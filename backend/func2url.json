@@ -1,4 +1,5 @@
 {
+  "restart-bot-engine": "https://functions.poehali.dev/2487629c-72aa-43fe-9874-774729f6b499",
   "warehouse-reminder": "https://functions.poehali.dev/47b18b0a-4e91-45d8-ba83-2533c3b49979",
   "warehouse-settings": "https://functions.poehali.dev/caa00603-38de-4bca-ae3e-b1b825d16caa",
   "shop-products": "https://functions.poehali.dev/7fad7f6c-0746-49e0-8f7a-5c0d526b6e7d",

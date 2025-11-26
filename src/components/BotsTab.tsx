@@ -132,6 +132,7 @@ const BotsTab = ({
   const [editVipPromoStartDate, setEditVipPromoStartDate] = useState('');
   const [editVipPromoEndDate, setEditVipPromoEndDate] = useState('');
   const [editVipPurchaseMessage, setEditVipPurchaseMessage] = useState('VIP-ключ открывает доступ к эксклюзивным материалам и привилегиям.');
+  const [restartingEngine, setRestartingEngine] = useState(false);
   
   const openSettings = (bot: any) => {
     setSelectedBot(bot);
@@ -314,11 +315,53 @@ const BotsTab = ({
     const types: Record<string, string> = {
       keys: '🔑 QR-ключи + VIP-доступ',
       shop: '🛍️ Интернет-магазин',
+      warehouse: '🏭 Склад (бронирование)',
       subscription: '💎 Подписки и контент',
       support: '💬 Поддержка клиентов',
       custom: '⚙️ Кастомная логика',
     };
     return types[type] || type;
+  };
+
+  const handleRestartBotEngine = async () => {
+    if (!confirm('Перезапустить движок ботов? Все боты будут перезапущены с новым кодом.')) {
+      return;
+    }
+
+    setRestartingEngine(true);
+    try {
+      const response = await fetch('https://functions.poehali.dev/2487629c-72aa-43fe-9874-774729f6b499', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': currentUser?.id?.toString() || ''
+        },
+        body: JSON.stringify({})
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: 'Движок перезапущен',
+          description: data.message || 'Боты будут перезапущены с новым кодом'
+        });
+      } else {
+        const data = await response.json();
+        toast({
+          title: 'Ошибка',
+          description: data.error || 'Не удалось перезапустить движок',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось перезапустить движок',
+        variant: 'destructive'
+      });
+    } finally {
+      setRestartingEngine(false);
+    }
   };
 
   return (
@@ -342,7 +385,19 @@ const BotsTab = ({
           <h2 className="text-2xl md:text-3xl font-bold">Мои боты</h2>
           <p className="text-muted-foreground text-sm mt-1">Управляйте вашими Telegram-ботами</p>
         </div>
-        <CreateBotDialog
+        <div className="flex gap-2">
+          {isAdmin && (
+            <button
+              onClick={handleRestartBotEngine}
+              disabled={restartingEngine}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+              title="Перезапустить движок ботов для применения изменений в коде"
+            >
+              <Icon name={restartingEngine ? "Loader2" : "RefreshCw"} size={16} className={`mr-2 ${restartingEngine ? 'animate-spin' : ''}`} />
+              {restartingEngine ? 'Перезапуск...' : 'Перезапустить движок'}
+            </button>
+          )}
+          <CreateBotDialog
           canCreateBot={canCreateBot}
           newBotName={newBotName}
           newBotToken={newBotToken}
@@ -379,6 +434,7 @@ const BotsTab = ({
           setSecretShopText={setSecretShopText}
           handleCreateBot={handleCreateBot}
         />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
