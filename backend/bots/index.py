@@ -4,6 +4,24 @@ from typing import Dict, Any
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+def generate_unique_bot_number(conn) -> str:
+    '''
+    Генерирует уникальный 6-значный номер бота
+    '''
+    import random
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    for _ in range(100):
+        number = str(random.randint(100000, 999999))
+        check_query = f"SELECT id FROM t_p5255237_telegram_bot_service.bots WHERE unique_number = '{number}'"
+        cursor.execute(check_query)
+        if not cursor.fetchone():
+            cursor.close()
+            return number
+    
+    cursor.close()
+    raise ValueError('Failed to generate unique bot number')
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Business: Bot management API - CRUD operations for Telegram bots
@@ -96,7 +114,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         privacy_consent_text = body_data.get('privacy_consent_text', 'Я согласен на обработку персональных данных')
         secret_shop_text = body_data.get('secret_shop_text', '')
         
-        if not user_id or not name or not telegram_token or not description or not logic or not unique_number:
+        if not user_id or not name or not telegram_token or not description or not logic:
             conn.close()
             return {
                 'statusCode': 400,
@@ -104,11 +122,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'error': 'user_id, name, telegram_token, description, logic, and unique_number are required'}),
+                'body': json.dumps({'error': 'user_id, name, telegram_token, description, and logic are required'}),
                 'isBase64Encoded': False
             }
         
-        # Check if user exists
+        if not unique_number:
+            try:
+                unique_number = generate_unique_bot_number(conn)
+            except ValueError as e:
+                conn.close()
+                return {
+                    'statusCode': 500,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': str(e)}),
+                    'isBase64Encoded': False
+                }
+        
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         check_user_query = f"SELECT id FROM t_p5255237_telegram_bot_service.users WHERE id = {user_id}"
         cursor.execute(check_user_query)

@@ -87,15 +87,6 @@ export const useBotManagement = (currentUser: any) => {
       return;
     }
 
-    if (!uniqueNumber || uniqueNumber.length !== 6) {
-      toast({
-        title: 'Ошибка',
-        description: 'Укажите уникальный 6-значный номер бота',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     const isAdmin = currentUser?.role === 'admin';
     
     if (!isAdmin && bots.length >= 1) {

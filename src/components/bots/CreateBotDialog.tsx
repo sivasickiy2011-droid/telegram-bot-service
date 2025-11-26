@@ -152,20 +152,13 @@ const CreateBotDialog = ({
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="unique-number">Уникальный номер бота (6 цифр)</Label>
-                    <Input 
-                      id="unique-number" 
-                      placeholder="123456" 
-                      maxLength={6}
-                      value={uniqueNumber}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        setUniqueNumber(value);
-                      }}
-                    />
+                  <div className="p-3 rounded-lg bg-muted/50 border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon name="Hash" size={14} className="text-muted-foreground" />
+                      <Label className="text-xs font-medium">Уникальный номер бота</Label>
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      Используется для идентификации бота в системе
+                      Генерируется автоматически при создании (6-значный уникальный номер)
                     </p>
                   </div>
                 </div>
