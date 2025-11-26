@@ -114,6 +114,25 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         privacy_consent_text = body_data.get('privacy_consent_text', 'Я согласен на обработку персональных данных')
         secret_shop_text = body_data.get('secret_shop_text', '')
         
+        # Установка дефолтных message_texts в зависимости от шаблона
+        default_message_texts = {}
+        if template == 'keys':
+            default_message_texts = {
+                'welcome': '🚀 Привет! Я бот для выдачи ключей доступа.\n\nЗдесь вы можете получить бесплатный ключ и VIP-ключ для доступа к Тайной витрине.\n\nВыберите действие:',
+                'free_key_success': '✅ Ваш бесплатный ключ №{code_number}\n\nПокажите этот QR-код на кассе:\n• Участвуете в розыгрыше подарка\n• Получаете право на участие в Закрытой распродаже',
+                'free_key_empty': '😔 Бесплатные ключи на сегодня закончились.\n\nНо вы всё ещё можете получить VIP-ключ и попасть в Тайную витрину!'
+            }
+        elif template == 'shop':
+            default_message_texts = {
+                'welcome': '🛍 Добро пожаловать в наш магазин!\n\nЗдесь вы можете выбрать товары из каталога и оформить заказ.\n\nВыберите действие:'
+            }
+        elif template == 'warehouse':
+            default_message_texts = {
+                'welcome': '🏭 Добро пожаловать в систему бронирования склада!\n\nЗдесь вы можете забронировать время для разгрузки товара.\n\n📅 Рабочие часы: 8:00 - 18:00 (Пн-Пт)\n⏱ Длительность слота: 60 минут\n\nВыберите действие:'
+            }
+        
+        message_texts = body_data.get('message_texts', default_message_texts)
+        
         if not user_id or not name or not telegram_token or not description or not logic:
             conn.close()
             return {
@@ -171,18 +190,20 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         offer_image_url_escaped = offer_image_url.replace("'", "''")
         privacy_consent_text_escaped = privacy_consent_text.replace("'", "''")
         secret_shop_text_escaped = secret_shop_text.replace("'", "''")
+        message_texts_json = json.dumps(message_texts).replace("'", "''")
         
         query = f'''INSERT INTO t_p5255237_telegram_bot_service.bots 
                (user_id, name, telegram_token, template, bot_description, bot_logic, unique_number,
                 qr_free_count, qr_paid_count, qr_rotation_value, qr_rotation_unit, 
                 payment_enabled, payment_url, offer_image_url, privacy_consent_enabled, privacy_consent_text,
-                secret_shop_text, status, moderation_status)
+                secret_shop_text, message_texts, status, moderation_status)
                VALUES ({user_id}, '{name_escaped}', '{token_escaped}', '{template_escaped}', 
                        '{description_escaped}', '{logic_escaped}', '{unique_number_escaped}',
                        {qr_free_count}, {qr_paid_count}, 
                        {qr_rotation_value}, '{qr_rotation_unit_escaped}', {payment_enabled}, 
                        '{payment_url_escaped}', '{offer_image_url_escaped}', {privacy_consent_enabled}, 
-                       '{privacy_consent_text_escaped}', '{secret_shop_text_escaped}', 'inactive', 'pending') 
+                       '{privacy_consent_text_escaped}', '{secret_shop_text_escaped}', '{message_texts_json}', 
+                       'inactive', 'pending') 
                RETURNING *'''
         cursor.execute(query)
         bot = cursor.fetchone()
