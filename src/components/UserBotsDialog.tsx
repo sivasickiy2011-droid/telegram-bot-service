@@ -524,7 +524,6 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
               </div>
             </>
           )}
-          )}
         </DialogContent>
       </Dialog>
 
