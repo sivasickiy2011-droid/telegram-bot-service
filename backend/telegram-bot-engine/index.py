@@ -1929,6 +1929,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if method == 'POST':
+        # Логируем полный event для отладки
+        print(f"[DEBUG WEBHOOK] Full event received: {json.dumps(event, default=str)}")
+        
         # Извлекаем bot_id - он всегда последний сегмент URL после /webhook/
         bot_id = None
         
@@ -1938,6 +1941,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             event.get('requestContext', {}).get('http', {}).get('path', ''),
             event.get('path', ''),
         ]
+        
+        print(f"[DEBUG WEBHOOK] Paths to check: {paths_to_check}")
         
         # Ищем bot_id в любом из путей
         for path in paths_to_check:
