@@ -336,6 +336,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        delete_qr_codes = f"DELETE FROM t_p5255237_telegram_bot_service.qr_codes WHERE bot_id = {bot_id}"
+        cursor.execute(delete_qr_codes)
+        
+        delete_bot_users = f"DELETE FROM t_p5255237_telegram_bot_service.bot_users WHERE bot_id = {bot_id}"
+        cursor.execute(delete_bot_users)
+        
+        delete_payments = f"DELETE FROM t_p5255237_telegram_bot_service.payments WHERE bot_id = {bot_id}"
+        cursor.execute(delete_payments)
+        
         query = f"DELETE FROM t_p5255237_telegram_bot_service.bots WHERE id = {bot_id} RETURNING *"
         cursor.execute(query)
         deleted_bot = cursor.fetchone()
