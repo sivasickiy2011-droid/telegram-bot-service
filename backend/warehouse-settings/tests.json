@@ -1,0 +1,35 @@
+{
+  "tests": [
+    {
+      "name": "Handle OPTIONS request",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedHeaders": {
+        "Access-Control-Allow-Origin": "*"
+      }
+    },
+    {
+      "name": "Get warehouse schedule (default values)",
+      "method": "GET",
+      "path": "/?bot_id=1&action=schedule",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "schedule": {
+          "work_start_time": "string"
+        }
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get warehouse bookings",
+      "method": "GET",
+      "path": "/?bot_id=1&action=bookings",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "bookings": "array"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

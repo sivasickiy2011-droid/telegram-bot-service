@@ -15,6 +15,7 @@ import TextsSettingsTab from './settings/TextsSettingsTab';
 import AdditionalSettingsTab from './settings/AdditionalSettingsTab';
 import InstructionsTab from './settings/InstructionsTab';
 import ShopManagementTab from './ShopManagementTab';
+import WarehouseManagementTab from './WarehouseManagementTab';
 
 interface Bot {
   id: string;
@@ -119,7 +120,7 @@ const BotSettingsDialog = ({
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full ${selectedBot?.template === 'shop' ? 'grid-cols-6' : 'grid-cols-5'}`}>
+          <TabsList className={`grid w-full ${selectedBot?.template === 'shop' || selectedBot?.template === 'warehouse' ? 'grid-cols-6' : 'grid-cols-5'}`}>
             <TabsTrigger value="token">
               <Icon name="Key" size={14} className="mr-2" />
               Токен
@@ -128,6 +129,12 @@ const BotSettingsDialog = ({
               <TabsTrigger value="shop">
                 <Icon name="ShoppingCart" size={14} className="mr-2" />
                 Магазин
+              </TabsTrigger>
+            )}
+            {selectedBot?.template === 'warehouse' && (
+              <TabsTrigger value="warehouse">
+                <Icon name="Warehouse" size={14} className="mr-2" />
+                Склад
               </TabsTrigger>
             )}
             <TabsTrigger value="payment">
@@ -154,6 +161,8 @@ const BotSettingsDialog = ({
           />
           
           {selectedBot?.template === 'shop' && <ShopManagementTab botId={selectedBot.id} />}
+          
+          {selectedBot?.template === 'warehouse' && <WarehouseManagementTab botId={selectedBot.id} />}
           
           <PaymentSettingsTab
             selectedBot={selectedBot}

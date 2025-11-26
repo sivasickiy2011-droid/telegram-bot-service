@@ -23,6 +23,12 @@ class BotStates(StatesGroup):
     in_cart = State()
     checkout_address = State()
     checkout_phone = State()
+    warehouse_selecting_date = State()
+    warehouse_selecting_time = State()
+    warehouse_entering_phone = State()
+    warehouse_entering_company = State()
+    warehouse_entering_vehicle = State()
+    warehouse_entering_cargo = State()
 
 def get_db_connection():
     '''Создает подключение к базе данных'''
@@ -303,6 +309,148 @@ def clear_user_cart(bot_id: int, user_id: int):
     cursor.close()
     conn.close()
 
+def get_warehouse_schedule(bot_id: int) -> Optional[Dict]:
+    '''Получить расписание работы склада'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    query = f'''SELECT * FROM t_p5255237_telegram_bot_service.warehouse_schedule 
+               WHERE bot_id = {bot_id}'''
+    cursor.execute(query)
+    schedule = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    if schedule:
+        return dict(schedule)
+    return {
+        'work_start_time': '08:00:00',
+        'work_end_time': '18:00:00',
+        'slot_duration_minutes': 60,
+        'work_days': '1,2,3,4,5'
+    }
+
+def get_available_dates(bot_id: int, days_ahead: int = 60) -> list:
+    '''Получить доступные даты для бронирования (только будущие рабочие дни)'''
+    from datetime import datetime, timedelta
+    schedule = get_warehouse_schedule(bot_id)
+    work_days = [int(d) for d in schedule['work_days'].split(',')]
+    
+    available_dates = []
+    today = datetime.now().date()
+    
+    for i in range(1, days_ahead + 1):
+        check_date = today + timedelta(days=i)
+        if check_date.isoweekday() in work_days:
+            available_dates.append(check_date)
+    
+    return available_dates
+
+def get_booked_slots(bot_id: int, date) -> list:
+    '''Получить занятые слоты на конкретную дату'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    query = f'''SELECT booking_time FROM t_p5255237_telegram_bot_service.warehouse_bookings 
+               WHERE bot_id = {bot_id} AND booking_date = '{date}' AND status = 'active' '''
+    cursor.execute(query)
+    bookings = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [str(b['booking_time'])[:5] for b in bookings]
+
+def get_available_time_slots(bot_id: int, date) -> list:
+    '''Получить свободные временные слоты на дату'''
+    from datetime import datetime, timedelta
+    schedule = get_warehouse_schedule(bot_id)
+    
+    start_time_str = str(schedule['work_start_time'])[:5]
+    end_time_str = str(schedule['work_end_time'])[:5]
+    slot_duration = schedule['slot_duration_minutes']
+    
+    start_hour, start_minute = map(int, start_time_str.split(':'))
+    end_hour, end_minute = map(int, end_time_str.split(':'))
+    
+    start_time = datetime.combine(date, datetime.min.time().replace(hour=start_hour, minute=start_minute))
+    end_time = datetime.combine(date, datetime.min.time().replace(hour=end_hour, minute=end_minute))
+    
+    booked_slots = get_booked_slots(bot_id, date)
+    
+    available_slots = []
+    current_time = start_time
+    
+    while current_time < end_time:
+        time_str = current_time.strftime('%H:%M')
+        if time_str not in booked_slots:
+            available_slots.append(time_str)
+        current_time += timedelta(minutes=slot_duration)
+    
+    return available_slots
+
+def create_warehouse_booking(bot_id: int, telegram_user_id: int, username: str, 
+                             phone: str, company: str, date, time_str: str,
+                             vehicle_type: str, cargo_desc: str) -> bool:
+    '''Создать бронирование склада'''
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    username_escaped = username.replace("'", "''")
+    phone_escaped = phone.replace("'", "''")
+    company_escaped = company.replace("'", "''")
+    vehicle_escaped = vehicle_type.replace("'", "''")
+    cargo_escaped = cargo_desc.replace("'", "''")
+    
+    query = f'''INSERT INTO t_p5255237_telegram_bot_service.warehouse_bookings 
+               (bot_id, telegram_user_id, telegram_username, user_phone, user_company,
+                booking_date, booking_time, vehicle_type, cargo_description, status)
+               VALUES ({bot_id}, {telegram_user_id}, '{username_escaped}', '{phone_escaped}', 
+                       '{company_escaped}', '{date}', '{time_str}', '{vehicle_escaped}', 
+                       '{cargo_escaped}', 'active')'''
+    
+    try:
+        cursor.execute(query)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except:
+        cursor.close()
+        conn.close()
+        return False
+
+def get_user_bookings(bot_id: int, telegram_user_id: int) -> list:
+    '''Получить активные бронирования пользователя'''
+    from datetime import datetime
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    today = datetime.now().date()
+    query = f'''SELECT * FROM t_p5255237_telegram_bot_service.warehouse_bookings 
+               WHERE bot_id = {bot_id} AND telegram_user_id = {telegram_user_id} 
+               AND status = 'active' AND booking_date >= '{today}' 
+               ORDER BY booking_date, booking_time'''
+    cursor.execute(query)
+    bookings = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [dict(b) for b in bookings]
+
+def cancel_warehouse_booking(booking_id: int, reason: str = 'Отменено пользователем') -> bool:
+    '''Отменить бронирование'''
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    reason_escaped = reason.replace("'", "''")
+    query = f'''UPDATE t_p5255237_telegram_bot_service.warehouse_bookings 
+               SET status = 'cancelled', cancelled_at = CURRENT_TIMESTAMP, 
+               cancellation_reason = '{reason_escaped}' 
+               WHERE id = {booking_id}'''
+    try:
+        cursor.execute(query)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return True
+    except:
+        cursor.close()
+        conn.close()
+        return False
+
 def create_main_menu_keyboard(payment_enabled: bool = True, button_texts: dict = None) -> ReplyKeyboardMarkup:
     '''Создает главное меню с кнопками'''
     if button_texts is None:
@@ -367,6 +515,26 @@ async def cmd_start(message: types.Message, bot_id: int):
             keyboard=[
                 [KeyboardButton(text="🛍️ Каталог товаров")],
                 [KeyboardButton(text="🛒 Корзина")],
+            ],
+            resize_keyboard=True
+        )
+        await message.answer(welcome_text, reply_markup=keyboard)
+        return
+    
+    if bot_template == 'warehouse':
+        welcome_text = message_texts.get('welcome',
+            "🏭 Добро пожаловать в систему бронирования склада!\n\n"
+            "Здесь вы можете забронировать время для разгрузки товара.\n\n"
+            "📅 Рабочие часы: 8:00 - 18:00 (Пн-Пт)\n"
+            "⏱ Длительность слота: 60 минут\n\n"
+            "Выберите действие:"
+        )
+        
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="📅 Забронировать время")],
+                [KeyboardButton(text="📋 Мои бронирования")],
+                [KeyboardButton(text="ℹ️ Информация")],
             ],
             resize_keyboard=True
         )
@@ -899,6 +1067,203 @@ async def handle_view_cart(message: types.Message, bot_id: int):
     
     await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
 
+async def handle_warehouse_booking_start(message: types.Message, bot_id: int, state: FSMContext):
+    '''Начало процесса бронирования - выбор даты'''
+    from datetime import datetime
+    available_dates = get_available_dates(bot_id, days_ahead=14)
+    
+    if not available_dates:
+        await message.answer("К сожалению, нет доступных дат для бронирования.")
+        return
+    
+    text = "📅 *Выберите дату для разгрузки:*\n\n"
+    
+    keyboard_buttons = []
+    for i, date in enumerate(available_dates[:10]):
+        date_str = date.strftime('%d.%m.%Y (%a)')
+        callback_data = f"warehouse_date:{date.strftime('%Y-%m-%d')}"
+        keyboard_buttons.append([InlineKeyboardButton(text=date_str, callback_data=callback_data)])
+    
+    keyboard_buttons.append([InlineKeyboardButton(text="⬅ Главное меню", callback_data="main_menu")])
+    keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+    
+    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+
+async def handle_warehouse_date_selected(callback: types.CallbackQuery, bot_id: int, state: FSMContext):
+    '''Обработка выбора даты - показ доступных слотов времени'''
+    from datetime import datetime
+    date_str = callback.data.split(':')[1]
+    selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    
+    available_slots = get_available_time_slots(bot_id, selected_date)
+    
+    if not available_slots:
+        await callback.message.edit_text(
+            f"😔 На {selected_date.strftime('%d.%m.%Y')} все слоты заняты.\n\nВыберите другую дату.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⬅ Назад к датам", callback_data="warehouse_booking")]
+            ])
+        )
+        await callback.answer()
+        return
+    
+    text = f"🕐 *Доступное время на {selected_date.strftime('%d.%m.%Y')}:*\n\n"
+    text += "Выберите удобный слот:"
+    
+    keyboard_buttons = []
+    for time_slot in available_slots[:10]:
+        callback_data = f"warehouse_time:{date_str}:{time_slot}"
+        keyboard_buttons.append([InlineKeyboardButton(text=f"⏰ {time_slot}", callback_data=callback_data)])
+    
+    keyboard_buttons.append([InlineKeyboardButton(text="⬅ Назад к датам", callback_data="warehouse_booking")])
+    keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+    
+    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.answer()
+
+async def handle_warehouse_time_selected(callback: types.CallbackQuery, bot_id: int, state: FSMContext):
+    '''Обработка выбора времени - начало заполнения данных'''
+    parts = callback.data.split(':')
+    date_str = parts[1]
+    time_str = parts[2]
+    
+    await state.update_data(
+        bot_id=bot_id,
+        booking_date=date_str,
+        booking_time=time_str
+    )
+    
+    await callback.message.edit_text(
+        f"✅ Выбрано: {date_str} в {time_str}\n\n"
+        f"📝 Теперь введите ваши данные.\n\n"
+        f"Введите *номер телефона* для связи:",
+        parse_mode="Markdown"
+    )
+    await state.set_state(BotStates.warehouse_entering_phone)
+    await callback.answer()
+
+async def process_warehouse_phone(message: types.Message, state: FSMContext):
+    '''Обработка ввода телефона для склада'''
+    await state.update_data(warehouse_phone=message.text)
+    await message.answer("🏢 Введите *название компании*:", parse_mode="Markdown")
+    await state.set_state(BotStates.warehouse_entering_company)
+
+async def process_warehouse_company(message: types.Message, state: FSMContext):
+    '''Обработка ввода компании'''
+    await state.update_data(warehouse_company=message.text)
+    await message.answer("🚚 Введите *тип транспортного средства* (например: Газель, Фура 20т):", parse_mode="Markdown")
+    await state.set_state(BotStates.warehouse_entering_vehicle)
+
+async def process_warehouse_vehicle(message: types.Message, state: FSMContext):
+    '''Обработка ввода типа ТС'''
+    await state.update_data(warehouse_vehicle=message.text)
+    await message.answer("📦 Введите *описание груза* (например: Стройматериалы, 5 паллет):", parse_mode="Markdown")
+    await state.set_state(BotStates.warehouse_entering_cargo)
+
+async def process_warehouse_cargo_and_confirm(message: types.Message, state: FSMContext, bot: Bot):
+    '''Обработка описания груза и создание бронирования'''
+    from datetime import datetime
+    user_data = await state.get_data()
+    bot_id = user_data.get('bot_id')
+    date_str = user_data.get('booking_date')
+    time_str = user_data.get('booking_time')
+    phone = user_data.get('warehouse_phone')
+    company = user_data.get('warehouse_company')
+    vehicle = user_data.get('warehouse_vehicle')
+    cargo = message.text
+    
+    telegram_user_id = message.from_user.id
+    username = message.from_user.username or 'без username'
+    
+    success = create_warehouse_booking(
+        bot_id, telegram_user_id, username, phone, company,
+        date_str, time_str, vehicle, cargo
+    )
+    
+    if success:
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        text = (
+            f"✅ *Бронирование подтверждено!*\n\n"
+            f"📅 Дата: {date_obj.strftime('%d.%m.%Y')}\n"
+            f"🕐 Время: {time_str}\n"
+            f"📱 Телефон: {phone}\n"
+            f"🏢 Компания: {company}\n"
+            f"🚚 ТС: {vehicle}\n"
+            f"📦 Груз: {cargo}\n\n"
+            f"Мы ждем вас в указанное время. За день до разгрузки придет напоминание."
+        )
+        await message.answer(text, parse_mode="Markdown")
+    else:
+        await message.answer(
+            "❌ Ошибка при создании бронирования. Возможно, это время уже занято. "
+            "Попробуйте выбрать другой слот.",
+            parse_mode="Markdown"
+        )
+    
+    await state.clear()
+
+async def handle_warehouse_my_bookings(message: types.Message, bot_id: int):
+    '''Показать бронирования пользователя'''
+    from datetime import datetime
+    telegram_user_id = message.from_user.id
+    bookings = get_user_bookings(bot_id, telegram_user_id)
+    
+    if not bookings:
+        await message.answer(
+            "📋 У вас нет активных бронирований.\n\n"
+            "Забронируйте время для разгрузки!"
+        )
+        return
+    
+    text = "📋 *Ваши бронирования:*\n\n"
+    
+    keyboard_buttons = []
+    for booking in bookings:
+        date_obj = booking['booking_date']
+        time_str = str(booking['booking_time'])[:5]
+        date_str = date_obj.strftime('%d.%m.%Y')
+        
+        text += f"• {date_str} в {time_str}\n"
+        text += f"  🏢 {booking['user_company']}\n"
+        text += f"  🚚 {booking['vehicle_type']}\n\n"
+        
+        keyboard_buttons.append([
+            InlineKeyboardButton(
+                text=f"🗑 Отменить бронь {date_str} {time_str}",
+                callback_data=f"warehouse_cancel:{booking['id']}"
+            )
+        ])
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+
+async def handle_warehouse_info(message: types.Message, bot_id: int):
+    '''Информация о складе'''
+    schedule = get_warehouse_schedule(bot_id)
+    
+    work_days_map = {1: 'Пн', 2: 'Вт', 3: 'Ср', 4: 'Чт', 5: 'Пт', 6: 'Сб', 7: 'Вс'}
+    work_days = [int(d) for d in schedule['work_days'].split(',')]
+    work_days_str = ', '.join([work_days_map[d] for d in work_days])
+    
+    text = (
+        f"ℹ️ *Информация о складе*\n\n"
+        f"🕐 Рабочие часы: {str(schedule['work_start_time'])[:5]} - {str(schedule['work_end_time'])[:5]}\n"
+        f"📅 Рабочие дни: {work_days_str}\n"
+        f"⏱ Длительность слота: {schedule['slot_duration_minutes']} минут\n"
+        f"📆 Бронирование доступно на 60 дней вперед\n\n"
+        f"📝 Для бронирования вам понадобится:\n"
+        f"• Номер телефона\n"
+        f"• Название компании\n"
+        f"• Тип транспортного средства\n"
+        f"• Описание груза\n\n"
+        f"⚠️ Обратите внимание:\n"
+        f"• Бронирование можно отменить\n"
+        f"• Прошедшие даты недоступны\n"
+        f"• Занятые слоты не показываются"
+    )
+    
+    await message.answer(text, parse_mode="Markdown")
+
 async def start_payment_form(callback: types.CallbackQuery, state: FSMContext):
     '''Начало заполнения формы для оплаты'''
     user_data = await state.get_data()
@@ -1128,6 +1493,21 @@ async def callback_handler(callback: types.CallbackQuery, bot_id: int, state: FS
         clear_user_cart(bot_id, user_id)
         await callback.answer("🗑 Корзина очищена")
         await handle_view_cart(callback.message, bot_id)
+    elif callback.data == "warehouse_booking":
+        await handle_warehouse_booking_start(callback.message, bot_id, state)
+        await callback.answer()
+    elif callback.data.startswith("warehouse_date:"):
+        await handle_warehouse_date_selected(callback, bot_id, state)
+    elif callback.data.startswith("warehouse_time:"):
+        await handle_warehouse_time_selected(callback, bot_id, state)
+    elif callback.data.startswith("warehouse_cancel:"):
+        booking_id = int(callback.data.split(":")[1])
+        success = cancel_warehouse_booking(booking_id)
+        if success:
+            await callback.answer("✅ Бронирование отменено", show_alert=True)
+            await handle_warehouse_my_bookings(callback.message, bot_id)
+        else:
+            await callback.answer("❌ Ошибка при отмене", show_alert=True)
     elif callback.data == "main_menu":
         await cmd_start(callback.message, bot_id)
         await state.clear()
@@ -1156,6 +1536,22 @@ async def run_bot(bot_data: Dict):
     @dp.message(BotStates.waiting_for_phone)
     async def phone_handler(message: types.Message, state: FSMContext):
         await process_phone_and_create_payment(message, state, bot)
+    
+    @dp.message(BotStates.warehouse_entering_phone)
+    async def warehouse_phone_handler(message: types.Message, state: FSMContext):
+        await process_warehouse_phone(message, state)
+    
+    @dp.message(BotStates.warehouse_entering_company)
+    async def warehouse_company_handler(message: types.Message, state: FSMContext):
+        await process_warehouse_company(message, state)
+    
+    @dp.message(BotStates.warehouse_entering_vehicle)
+    async def warehouse_vehicle_handler(message: types.Message, state: FSMContext):
+        await process_warehouse_vehicle(message, state)
+    
+    @dp.message(BotStates.warehouse_entering_cargo)
+    async def warehouse_cargo_handler(message: types.Message, state: FSMContext):
+        await process_warehouse_cargo_and_confirm(message, state, bot)
     
     @dp.message(F.text)
     async def text_handler(message: types.Message, state: FSMContext):
@@ -1220,6 +1616,19 @@ async def run_bot(bot_data: Dict):
                 if text == button_text or text == cat['name']:
                     await handle_category_products(message, bot_id, cat['name'])
                     return
+        
+        if bot_template == 'warehouse':
+            if text == '📅 Забронировать время':
+                await handle_warehouse_booking_start(message, bot_id, state)
+                return
+            
+            if text == '📋 Мои бронирования':
+                await handle_warehouse_my_bookings(message, bot_id)
+                return
+            
+            if text == 'ℹ️ Информация':
+                await handle_warehouse_info(message, bot_id)
+                return
     
     @dp.callback_query()
     async def callback_handler_wrapper(callback: types.CallbackQuery, state: FSMContext):
