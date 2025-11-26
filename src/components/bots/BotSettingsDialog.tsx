@@ -14,6 +14,7 @@ import PaymentSettingsTab from './settings/PaymentSettingsTab';
 import TextsSettingsTab from './settings/TextsSettingsTab';
 import AdditionalSettingsTab from './settings/AdditionalSettingsTab';
 import InstructionsTab from './settings/InstructionsTab';
+import ShopManagementTab from './ShopManagementTab';
 
 interface Bot {
   id: string;
@@ -118,11 +119,17 @@ const BotSettingsDialog = ({
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className={`grid w-full ${selectedBot?.template === 'shop' ? 'grid-cols-6' : 'grid-cols-5'}`}>
             <TabsTrigger value="token">
               <Icon name="Key" size={14} className="mr-2" />
               Токен
             </TabsTrigger>
+            {selectedBot?.template === 'shop' && (
+              <TabsTrigger value="shop">
+                <Icon name="ShoppingCart" size={14} className="mr-2" />
+                Магазин
+              </TabsTrigger>
+            )}
             <TabsTrigger value="payment">
               <Icon name="CreditCard" size={14} className="mr-2" />
               Оплата
@@ -145,6 +152,8 @@ const BotSettingsDialog = ({
             editTelegramToken={editTelegramToken}
             setEditTelegramToken={setEditTelegramToken}
           />
+          
+          {selectedBot?.template === 'shop' && <ShopManagementTab botId={selectedBot.id} />}
           
           <PaymentSettingsTab
             selectedBot={selectedBot}

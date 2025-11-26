@@ -192,13 +192,14 @@ const CreateBotDialog = ({
                       <SelectContent>
                         <SelectItem value="keys">🔑 QR-ключи + VIP-доступ</SelectItem>
                         <SelectItem value="shop">🛍️ Интернет-магазин</SelectItem>
+                        <SelectItem value="warehouse">🏭 Склад (бронирование)</SelectItem>
                         <SelectItem value="subscription" disabled>💎 Подписки и контент (В разработке)</SelectItem>
                         <SelectItem value="support" disabled>💬 Поддержка клиентов (В разработке)</SelectItem>
                         <SelectItem value="custom" disabled>⚙️ Кастомная логика (В разработке)</SelectItem>
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground">
-                      Реализованные шаблоны: QR-ключи, Интернет-магазин. Остальные в разработке.
+                      Реализованные шаблоны: QR-ключи, Интернет-магазин, Склад. Остальные в разработке.
                     </p>
                   </div>
 
