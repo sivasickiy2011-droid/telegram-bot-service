@@ -259,19 +259,38 @@ def send_telegram_photo(token: str, chat_id: int, photo_base64: str, caption: st
     response = requests.post(url, data=data, files=files)
     return response.json()
 
-def create_main_menu_keyboard(bot_id: int = None, telegram_user_id: int = None) -> Dict:
-    '''Создает главное меню с кнопками (с дополнительными кнопками для администратора)'''
+def create_main_menu_keyboard(payment_enabled: bool = True, button_texts: dict = None, bot_id: int = None, telegram_user_id: int = None) -> Dict:
+    '''Создает главное меню с кнопками (динамически загружает тексты и учитывает payment_enabled)'''
+    if button_texts is None:
+        button_texts = {}
+    
+    print(f"[DEBUG Webhook] create_main_menu_keyboard - payment_enabled: {payment_enabled}")
+    print(f"[DEBUG Webhook] create_main_menu_keyboard - button_texts: {button_texts}")
+    
+    free_key_text = button_texts.get('free_key', '🎁 Получить бесплатный ключ')
     buttons = [
-        [{'text': '🎁 Получить бесплатный ключ'}],
-        [{'text': '🔐 Узнать про Тайную витрину'}],
-        [{'text': '💎 Купить VIP-ключ'}]
+        [{'text': free_key_text}]
     ]
+    
+    if payment_enabled:
+        secret_shop_text = button_texts.get('secret_shop', '🔐 Узнать про Тайную витрину')
+        buy_vip_text = button_texts.get('buy_vip', '💎 Купить VIP-ключ')
+        help_text = button_texts.get('help', '❓ Помощь')
+        
+        print(f"[DEBUG Webhook] Adding payment buttons")
+        buttons.extend([
+            [{'text': secret_shop_text}],
+            [{'text': buy_vip_text}],
+            [{'text': help_text}]
+        ])
+    else:
+        print(f"[DEBUG Webhook] Payment disabled - NOT adding payment buttons")
     
     if bot_id and telegram_user_id and is_user_admin(bot_id, telegram_user_id):
         buttons.append([{'text': '👑 Получить бесплатный VIP-ключ (Админ)'}])
         buttons.append([{'text': '📊 Статистика'}])
     
-    buttons.append([{'text': '❓ Помощь'}])
+    print(f"[DEBUG Webhook] Final buttons count: {len(buttons)}")
     
     return {
         'keyboard': buttons,
@@ -292,14 +311,22 @@ def handle_start(bot_data: Dict, message: Dict):
     owner_telegram_id = get_owner_telegram_id(bot_data['id'])
     register_telegram_user(bot_data['id'], user, owner_telegram_id)
     
-    text = (
+    payment_enabled = bot_data.get('payment_enabled', True)
+    message_texts = bot_data.get('message_texts', {})
+    button_texts = bot_data.get('button_texts', {})
+    
+    print(f"[DEBUG Webhook Bot {bot_data['id']}] /start - payment_enabled: {payment_enabled}")
+    print(f"[DEBUG Webhook Bot {bot_data['id']}] /start - button_texts: {button_texts}")
+    print(f"[DEBUG Webhook Bot {bot_data['id']}] /start - message_texts: {message_texts}")
+    
+    text = message_texts.get('welcome',
         "🚀 Привет! Я бот POLYTOPE.\n\n"
         "Здесь вы можете получить бесплатный ключ и VIP-ключ для доступа к Тайной витрине "
         "на нашей закрытой распродаже с 21 по 23 ноября.\n\n"
         "Выберите действие:"
     )
     
-    keyboard = create_main_menu_keyboard(bot_data['id'], user['id'])
+    keyboard = create_main_menu_keyboard(payment_enabled, button_texts, bot_data['id'], user['id'])
     send_telegram_message(bot_data['telegram_token'], chat_id, text, keyboard)
 
 def handle_free_key(bot_data: Dict, message: Dict):
@@ -311,6 +338,9 @@ def handle_free_key(bot_data: Dict, message: Dict):
     user_id = register_telegram_user(bot_data['id'], user, owner_telegram_id)
     qr_key = get_free_qr_key(bot_data['id'], user_id, user['id'])
     
+    message_texts = bot_data.get('message_texts', {})
+    payment_enabled = bot_data.get('payment_enabled', True)
+    
     if qr_key and qr_key.get('already_received'):
         text = (
             "✅ Вы уже получили свой бесплатный ключ!\n\n"
@@ -318,44 +348,53 @@ def handle_free_key(bot_data: Dict, message: Dict):
             "Но вы можете приобрести VIP-ключ для доступа к Тайной витрине!"
         )
         
-        inline_keyboard = create_inline_keyboard([
-            [{'text': '💎 Купить VIP-ключ', 'callback_data': 'buy_vip'}]
-        ])
+        inline_buttons = []
+        if payment_enabled:
+            inline_buttons.append([{'text': '💎 Купить VIP-ключ', 'callback_data': 'buy_vip'}])
         
+        inline_keyboard = create_inline_keyboard(inline_buttons) if inline_buttons else None
         send_telegram_message(bot_data['telegram_token'], chat_id, text, inline_keyboard)
         return
     
     if qr_key:
         qr_base64 = generate_qr_base64(qr_key['code_number'], is_vip=False)
         
-        caption = (
-            f"✅ Ваш бесплатный ключ №{qr_key['code_number']}\n\n"
-            f"Покажите этот QR-код на кассе:\n"
-            f"• Участвуете в розыгрыше подарка\n"
-            f"• Получаете право на участие в Чёрной пятнице"
+        caption_template = message_texts.get('free_key_success',
+            "✅ Ваш бесплатный ключ №{code_number}\n\n"
+            "Покажите этот QR-код на кассе:\n"
+            "• Участвуете в розыгрыше подарка\n"
+            "• Получаете право на участие в Закрытой распродаже"
         )
+        caption = caption_template.format(code_number=qr_key['code_number'])
         
-        inline_keyboard = create_inline_keyboard([
-            [{'text': '🔐 Что такое Тайная витрина?', 'callback_data': 'secret_shop'}],
-            [{'text': '💎 Купить VIP-ключ', 'callback_data': 'buy_vip'}]
-        ])
+        inline_buttons = []
+        if payment_enabled:
+            inline_buttons.extend([
+                [{'text': '🔐 Что такое Тайная витрина?', 'callback_data': 'secret_shop'}],
+                [{'text': '💎 Купить VIP-ключ', 'callback_data': 'buy_vip'}]
+            ])
         
+        inline_keyboard = create_inline_keyboard(inline_buttons) if inline_buttons else None
         send_telegram_photo(bot_data['telegram_token'], chat_id, qr_base64, caption, inline_keyboard)
     else:
-        text = (
+        text = message_texts.get('free_key_empty',
             "😔 Бесплатные ключи на сегодня закончились.\n\n"
             "Но вы всё ещё можете получить VIP-ключ и попасть в Тайную витрину!"
         )
         
-        inline_keyboard = create_inline_keyboard([
-            [{'text': '💎 Купить VIP-ключ', 'callback_data': 'buy_vip'}]
-        ])
+        inline_buttons = []
+        if payment_enabled:
+            inline_buttons.append([{'text': '💎 Купить VIP-ключ', 'callback_data': 'buy_vip'}])
         
+        inline_keyboard = create_inline_keyboard(inline_buttons) if inline_buttons else None
         send_telegram_message(bot_data['telegram_token'], chat_id, text, inline_keyboard)
 
 def handle_secret_shop(bot_data: Dict, chat_id: int):
     '''Информация о Тайной витрине'''
-    text = (
+    message_texts = bot_data.get('message_texts', {})
+    payment_enabled = bot_data.get('payment_enabled', True)
+    
+    text = message_texts.get('secret_shop',
         "🔐 Тайная витрина — это эксклюзивная закрытая распродажа!\n\n"
         "📅 Даты: 21-23 ноября\n"
         "💎 Доступ: Только с VIP-ключом\n"
@@ -363,10 +402,11 @@ def handle_secret_shop(bot_data: Dict, chat_id: int):
         "VIP-ключ открывает доступ к товарам, которых нет в обычном магазине."
     )
     
-    inline_keyboard = create_inline_keyboard([
-        [{'text': '💎 Купить VIP-ключ', 'callback_data': 'buy_vip'}]
-    ])
+    inline_buttons = []
+    if payment_enabled:
+        inline_buttons.append([{'text': '💎 Купить VIP-ключ', 'callback_data': 'buy_vip'}])
     
+    inline_keyboard = create_inline_keyboard(inline_buttons) if inline_buttons else None
     send_telegram_message(bot_data['telegram_token'], chat_id, text, inline_keyboard)
 
 def handle_buy_vip(bot_data: Dict, chat_id: int):
@@ -415,7 +455,9 @@ def handle_buy_vip(bot_data: Dict, chat_id: int):
 
 def handle_help(bot_data: Dict, chat_id: int):
     '''Помощь пользователю'''
-    text = (
+    message_texts = bot_data.get('message_texts', {})
+    
+    text = message_texts.get('help',
         "❓ Как пользоваться ботом:\n\n"
         "🎁 Получить бесплатный ключ - выдает QR-код (номера 1-500)\n"
         "🔐 Узнать про Тайную витрину - информация о закрытой распродаже\n"
@@ -952,22 +994,36 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     handle_phone_input_and_create_payment(bot_data, chat_id, telegram_user_id, text)
             else:
                 # Обычная обработка команд
+                payment_enabled = bot_data.get('payment_enabled', True)
+                button_texts = bot_data.get('button_texts', {})
+                
+                print(f"[DEBUG Webhook Bot {bot_data['id']}] Received text: '{text}'")
+                print(f"[DEBUG Webhook Bot {bot_data['id']}] Payment enabled: {payment_enabled}")
+                print(f"[DEBUG Webhook Bot {bot_data['id']}] Button texts: {button_texts}")
+                
+                free_key_text = button_texts.get('free_key', '🎁 Получить бесплатный ключ')
+                secret_shop_text = button_texts.get('secret_shop', '🔐 Узнать про Тайную витрину')
+                buy_vip_text = button_texts.get('buy_vip', '💎 Купить VIP-ключ')
+                help_text = button_texts.get('help', '❓ Помощь')
+                
                 if text == '/start':
                     handle_start(bot_data, message)
                 elif text == '/stats':
                     handle_stats(bot_data, chat_id, telegram_user_id)
-                elif text == '🎁 Получить бесплатный ключ':
+                elif text == free_key_text or text == '🎁 Получить бесплатный ключ':
                     handle_free_key(bot_data, message)
-                elif text == '🔐 Узнать про Тайную витрину':
+                elif payment_enabled and (text == secret_shop_text or text == '🔐 Узнать про Тайную витрину'):
                     handle_secret_shop(bot_data, chat_id)
-                elif text == '💎 Купить VIP-ключ':
+                elif payment_enabled and (text == buy_vip_text or text == '💎 Купить VIP-ключ'):
                     handle_buy_vip(bot_data, chat_id)
                 elif text == '👑 Получить бесплатный VIP-ключ (Админ)':
                     handle_admin_free_vip(bot_data, message)
                 elif text == '📊 Статистика':
                     handle_stats(bot_data, chat_id, telegram_user_id)
-                elif text == '❓ Помощь':
+                elif payment_enabled and (text == help_text or text == '❓ Помощь'):
                     handle_help(bot_data, chat_id)
+                elif not payment_enabled:
+                    print(f"[DEBUG Webhook Bot {bot_data['id']}] Payment disabled, ignoring message")
         
         elif 'callback_query' in update:
             callback = update['callback_query']
