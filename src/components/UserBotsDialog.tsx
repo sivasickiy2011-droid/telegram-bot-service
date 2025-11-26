@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -7,11 +6,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import Icon from '@/components/ui/icon';
-import { Card } from '@/components/ui/card';
 import BotSettingsDialog from '@/components/bots/BotSettingsDialog';
 import { useToast } from '@/hooks/use-toast';
+import UserBotsDialogContent from './user-bots/UserBotsDialogContent';
 
 interface User {
   id: number;
@@ -351,32 +348,6 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-500';
-      case 'inactive':
-        return 'bg-gray-500';
-      case 'error':
-        return 'bg-red-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  const getModerationBadge = (status?: string) => {
-    switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-500">Одобрен</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-500">Отклонен</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500">На модерации</Badge>;
-      default:
-        return <Badge variant="outline">Не отправлен</Badge>;
-    }
-  };
-
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -390,140 +361,19 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
             </DialogDescription>
           </DialogHeader>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Icon name="Loader2" size={32} className="animate-spin text-primary" />
-              <p className="ml-3 text-muted-foreground">Загрузка ботов...</p>
-            </div>
-          ) : bots.length === 0 ? (
-            <div className="text-center py-12">
-              <Icon name="Bot" size={48} className="mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">У пользователя пока нет ботов</p>
-            </div>
-          ) : (
-            <>
-              {bots.length > 0 && (
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg mb-4">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedBotIds.size === bots.length}
-                      onChange={toggleSelectAll}
-                      className="w-4 h-4 cursor-pointer"
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {selectedBotIds.size > 0 ? `Выбрано: ${selectedBotIds.size}` : 'Выбрать всех'}
-                    </span>
-                  </div>
-                  {selectedBotIds.size > 0 && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleDeleteSelected}
-                      disabled={isDeleting}
-                    >
-                      <Icon name={isDeleting ? 'Loader2' : 'Trash2'} size={16} className={isDeleting ? 'animate-spin' : ''} />
-                      <span className="ml-2">Удалить выбранные</span>
-                    </Button>
-                  )}
-                </div>
-              )}
-              <div className="space-y-4">
-                {bots.map((bot) => (
-                  <Card key={bot.id} className="p-4">
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedBotIds.has(bot.id)}
-                        onChange={() => toggleBotSelection(bot.id)}
-                        className="w-4 h-4 mt-1 cursor-pointer"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className={`w-3 h-3 rounded-full ${getStatusColor(bot.status)}`} />
-                          <h3 className="text-lg font-semibold">{bot.name}</h3>
-                          {getModerationBadge(bot.moderationStatus)}
-                        </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Пользователей</p>
-                          <p className="text-lg font-semibold">{bot.users}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Сообщений</p>
-                          <p className="text-lg font-semibold">{bot.messages}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Шаблон</p>
-                          <p className="text-sm">{bot.template}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Статус</p>
-                          <p className="text-sm capitalize">{bot.status}</p>
-                        </div>
-                      </div>
-                      
-                      {bot.telegram_token && (
-                        <div className="mt-3 p-3 rounded-lg bg-muted/50 border">
-                          <p className="text-xs text-muted-foreground mb-1">Telegram Token</p>
-                          <p className="text-sm font-mono break-all">{bot.telegram_token}</p>
-                        </div>
-                      )}
-
-                      {bot.moderationStatus === 'rejected' && bot.moderationReason && (
-                        <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                          <p className="text-sm text-red-600 dark:text-red-400">
-                            <strong>Причина отклонения:</strong> {bot.moderationReason}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                      <div className="flex gap-2 ml-4">
-                        <Button
-                          variant={bot.status === 'active' ? 'destructive' : 'default'}
-                          size="sm"
-                          onClick={() => handleToggleBotStatus(bot)}
-                          title={bot.status === 'active' ? 'Остановить бота' : 'Запустить бота'}
-                        >
-                          <Icon name={bot.status === 'active' ? 'Square' : 'Play'} size={16} className="mr-1" />
-                          {bot.status === 'active' ? 'Остановить' : 'Запустить'}
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleReinstallWebhook(bot)}
-                          title="Переустановить webhook"
-                        >
-                          <Icon name="RefreshCw" size={16} className="mr-1" />
-                          Webhook
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openSettings(bot)}
-                          title="Редактировать настройки"
-                        >
-                          <Icon name="Settings" size={16} className="mr-1" />
-                          Настройки
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteBot(bot.id)}
-                          disabled={isDeleting}
-                          title="Удалить бота"
-                        >
-                          <Icon name="Trash2" size={16} />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
+          <UserBotsDialogContent
+            isLoading={isLoading}
+            bots={bots}
+            selectedBotIds={selectedBotIds}
+            isDeleting={isDeleting}
+            onToggleBotSelection={toggleBotSelection}
+            onToggleSelectAll={toggleSelectAll}
+            onToggleBotStatus={handleToggleBotStatus}
+            onReinstallWebhook={handleReinstallWebhook}
+            onOpenSettings={openSettings}
+            onDeleteBot={handleDeleteBot}
+            onDeleteSelected={handleDeleteSelected}
+          />
         </DialogContent>
       </Dialog>
 
@@ -532,9 +382,8 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
         onOpenChange={setSettingsOpen}
         selectedBot={selectedBot}
         editPaymentUrl={editPaymentUrl}
-        editPaymentEnabled={editPaymentEnabled}
-        savingSettings={savingSettings}
         setEditPaymentUrl={setEditPaymentUrl}
+        editPaymentEnabled={editPaymentEnabled}
         setEditPaymentEnabled={setEditPaymentEnabled}
         editButtonTexts={editButtonTexts}
         setEditButtonTexts={setEditButtonTexts}
@@ -554,15 +403,8 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
         setEditPrivacyConsentText={setEditPrivacyConsentText}
         editTelegramToken={editTelegramToken}
         setEditTelegramToken={setEditTelegramToken}
-        editVipPromoEnabled={false}
-        setEditVipPromoEnabled={() => {}}
-        editVipPromoStartDate=""
-        setEditVipPromoStartDate={() => {}}
-        editVipPromoEndDate=""
-        setEditVipPromoEndDate={() => {}}
-        editVipPurchaseMessage=""
-        setEditVipPurchaseMessage={() => {}}
-        onSave={handleSaveSettings}
+        savingSettings={savingSettings}
+        onSaveSettings={handleSaveSettings}
       />
     </>
   );
