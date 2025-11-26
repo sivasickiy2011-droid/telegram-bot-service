@@ -94,14 +94,42 @@ const BotCard = ({
         
         <div className="space-y-2 text-xs">
           <p className="font-medium text-muted-foreground">Функции бота:</p>
-          <div className="flex items-center gap-2">
-            <Icon name="QrCode" size={14} className="text-purple-500" />
-            <span>Генерация QR-ключей</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Icon name="Star" size={14} className="text-yellow-500" />
-            <span>VIP-подписки</span>
-          </div>
+          {bot.template === 'keys' && (
+            <>
+              <div className="flex items-center gap-2">
+                <Icon name="QrCode" size={14} className="text-purple-500" />
+                <span>Генерация QR-ключей</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Icon name="Star" size={14} className="text-yellow-500" />
+                <span>VIP-подписки</span>
+              </div>
+            </>
+          )}
+          {bot.template === 'shop' && (
+            <>
+              <div className="flex items-center gap-2">
+                <Icon name="ShoppingCart" size={14} className="text-green-500" />
+                <span>Каталог товаров</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Icon name="Package" size={14} className="text-blue-500" />
+                <span>Управление заказами</span>
+              </div>
+            </>
+          )}
+          {bot.template === 'warehouse' && (
+            <>
+              <div className="flex items-center gap-2">
+                <Icon name="Calendar" size={14} className="text-orange-500" />
+                <span>Бронирование времени</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Icon name="Bell" size={14} className="text-purple-500" />
+                <span>Напоминания клиентам</span>
+              </div>
+            </>
+          )}
           <div className="flex items-center gap-2">
             <Icon name="Users" size={14} className="text-blue-500" />
             <span>{bot.users} пользователей</span>
