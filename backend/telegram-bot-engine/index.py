@@ -59,7 +59,7 @@ class PostgresStorage(BaseStorage):
             conn = get_db_connection()
             cursor = conn.cursor()
             query = f'''SELECT state FROM t_p5255237_telegram_bot_service.bot_fsm_states 
-                   WHERE bot_id = {key.bot_id} AND chat_id = {key.chat_id} AND user_id = {key.user_id}'''
+                   WHERE bot_id = {key.bot_id} AND chat_id = '{key.chat_id}'::bigint AND user_id = '{key.user_id}'::bigint'''
             cursor.execute(query)
             result = cursor.fetchone()
             cursor.close()
@@ -93,7 +93,7 @@ class PostgresStorage(BaseStorage):
             conn = get_db_connection()
             cursor = conn.cursor()
             query = f'''SELECT data FROM t_p5255237_telegram_bot_service.bot_fsm_states 
-                   WHERE bot_id = {key.bot_id} AND chat_id = {key.chat_id} AND user_id = {key.user_id}'''
+                   WHERE bot_id = {key.bot_id} AND chat_id = '{key.chat_id}'::bigint AND user_id = '{key.user_id}'::bigint'''
             cursor.execute(query)
             result = cursor.fetchone()
             cursor.close()
