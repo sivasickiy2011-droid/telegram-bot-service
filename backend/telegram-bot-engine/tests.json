@@ -13,6 +13,30 @@
       "path": "/",
       "expectedStatus": 200,
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Webhook with bot_id in query",
+      "method": "POST",
+      "path": "/?bot_id=27",
+      "body": {
+        "update_id": 123456789,
+        "message": {
+          "message_id": 1,
+          "from": {
+            "id": 12345,
+            "is_bot": false,
+            "first_name": "Test"
+          },
+          "chat": {
+            "id": 12345,
+            "type": "private"
+          },
+          "date": 1700000000,
+          "text": "/start"
+        }
+      },
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
     }
   ]
 }

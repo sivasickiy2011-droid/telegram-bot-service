@@ -1929,35 +1929,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if method == 'POST':
-        # Логируем полный event для отладки
-        print(f"[DEBUG WEBHOOK] Full event received: {json.dumps(event, default=str)}")
+        # Извлекаем bot_id из query параметра ?bot_id=27
+        query_params = event.get('queryStringParameters', {}) or {}
+        bot_id_str = query_params.get('bot_id')
         
-        # Извлекаем bot_id - он всегда последний сегмент URL после /webhook/
         bot_id = None
-        
-        # Получаем все возможные источники path
-        paths_to_check = [
-            event.get('url', ''),
-            event.get('requestContext', {}).get('http', {}).get('path', ''),
-            event.get('path', ''),
-        ]
-        
-        print(f"[DEBUG WEBHOOK] Paths to check: {paths_to_check}")
-        
-        # Ищем bot_id в любом из путей
-        for path in paths_to_check:
-            if path and isinstance(path, str):
-                # Убираем query string если есть
-                path = path.split('?')[0]
-                # Берём последний сегмент пути
-                segments = [s for s in path.split('/') if s]
-                if segments:
-                    try:
-                        # Если последний сегмент - число, это bot_id
-                        bot_id = int(segments[-1])
-                        break
-                    except:
-                        pass
+        if bot_id_str:
+            try:
+                bot_id = int(bot_id_str)
+            except:
+                pass
         
         # Если bot_id не найден, возвращаем понятный ответ Telegram
         if not bot_id:
@@ -1967,7 +1948,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({'ok': False, 'description': 'Bot ID not found in URL'}),
+                'body': json.dumps({'ok': False, 'description': 'Bot ID not found in query parameters'}),
                 'isBase64Encoded': False
             }
         

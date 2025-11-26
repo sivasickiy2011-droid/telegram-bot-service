@@ -91,8 +91,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     bot_token = bot['telegram_token']
     
-    # Webhook URL для этого бота
-    webhook_url = f'https://functions.poehali.dev/eb2c54e4-0f90-4e8a-ab2c-d043b163229e/webhook/{bot_id}'
+    # Webhook URL для этого бота (bot_id передаётся через query параметр)
+    webhook_url = f'https://functions.poehali.dev/eb2c54e4-0f90-4e8a-ab2c-d043b163229e?bot_id={bot_id}'
     
     # Set webhook через Telegram API
     telegram_api_url = f'https://api.telegram.org/bot{bot_token}/setWebhook'
