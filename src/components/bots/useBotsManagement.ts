@@ -264,6 +264,43 @@ export const useBotsManagement = (currentUser: any, onBotsUpdated?: () => void) 
     }
   };
 
+  const handleSetupWebhook = async (botId: string) => {
+    if (!confirm('Установить webhook для этого бота? Бот перейдет на webhook архитектуру.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('https://functions.poehali.dev/1e93e2c2-62f0-47e5-bb97-590cc26e5216', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ bot_id: parseInt(botId) })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast({
+          title: 'Webhook установлен',
+          description: `Webhook URL: ${data.webhook_url}`
+        });
+      } else {
+        toast({
+          title: 'Ошибка',
+          description: data.error || 'Не удалось установить webhook',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось установить webhook',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return {
     selectedBot,
     settingsOpen,
@@ -310,5 +347,6 @@ export const useBotsManagement = (currentUser: any, onBotsUpdated?: () => void) 
     handleToggleStatus,
     getBotTypeLabel,
     handleRestartBotEngine,
+    handleSetupWebhook,
   };
 };

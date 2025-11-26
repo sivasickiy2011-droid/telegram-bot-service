@@ -28,6 +28,7 @@ interface BotCardProps {
   onStats: (bot: Bot) => void;
   onDelete: (botId: string) => void;
   onToggleStatus: (botId: string, currentStatus: string) => void;
+  onSetupWebhook?: (botId: string) => void;
 }
 
 const BotCard = ({ 
@@ -38,7 +39,8 @@ const BotCard = ({
   onSettings, 
   onStats, 
   onDelete,
-  onToggleStatus
+  onToggleStatus,
+  onSetupWebhook
 }: BotCardProps) => {
   return (
     <Card
@@ -190,15 +192,29 @@ const BotCard = ({
         </div>
         
         {bot.moderationStatus === 'approved' && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className={`w-full ${bot.status === 'active' ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-500/10' : 'text-green-500 hover:text-green-600 hover:bg-green-500/10'}`}
-            onClick={() => onToggleStatus(bot.id, bot.status)}
-          >
-            <Icon name={bot.status === 'active' ? 'Power' : 'PowerOff'} size={14} className="mr-1" />
-            {bot.status === 'active' ? 'Отключить бота' : 'Включить бота'}
-          </Button>
+          <>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className={`w-full ${bot.status === 'active' ? 'text-orange-500 hover:text-orange-600 hover:bg-orange-500/10' : 'text-green-500 hover:text-green-600 hover:bg-green-500/10'}`}
+              onClick={() => onToggleStatus(bot.id, bot.status)}
+            >
+              <Icon name={bot.status === 'active' ? 'Power' : 'PowerOff'} size={14} className="mr-1" />
+              {bot.status === 'active' ? 'Отключить бота' : 'Включить бота'}
+            </Button>
+            
+            {onSetupWebhook && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+                onClick={() => onSetupWebhook(bot.id)}
+              >
+                <Icon name="Link" size={14} className="mr-1" />
+                Установить webhook
+              </Button>
+            )}
+          </>
         )}
         
         <Button 

@@ -97,6 +97,7 @@ const BotsTab = ({
     handleToggleStatus,
     getBotTypeLabel,
     handleRestartBotEngine,
+    handleSetupWebhook,
   } = useBotsManagement(currentUser, onBotsUpdated);
 
   return (
@@ -168,6 +169,7 @@ const BotsTab = ({
             onStats={openStats}
             onDelete={handleDeleteBot}
             onToggleStatus={handleToggleStatus}
+            onSetupWebhook={isAdmin ? handleSetupWebhook : undefined}
           />
         ))}
       </div>

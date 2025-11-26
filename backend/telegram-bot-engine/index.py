@@ -1762,6 +1762,135 @@ async def main():
     tasks = [run_bot(bot_data) for bot_data in active_bots]
     await asyncio.gather(*tasks)
 
+async def process_update(bot_id: int, update_data: Dict[str, Any]) -> None:
+    '''Обрабатывает один Update от Telegram webhook'''
+    # Получаем данные бота
+    bot_settings = get_bot_settings(bot_id)
+    if not bot_settings:
+        print(f"[ERROR] Bot {bot_id} not found")
+        return
+    
+    bot = Bot(token=bot_settings['telegram_token'])
+    storage = MemoryStorage()
+    dp = Dispatcher(storage=storage)
+    
+    # Регистрируем все обработчики (копия из run_bot)
+    @dp.message(Command("start"))
+    async def start_handler(message: types.Message, state: FSMContext):
+        await cmd_start(message, bot_id)
+        await state.clear()
+    
+    @dp.message(BotStates.waiting_for_last_name)
+    async def last_name_handler(message: types.Message, state: FSMContext):
+        await process_last_name(message, state)
+    
+    @dp.message(BotStates.waiting_for_first_name)
+    async def first_name_handler(message: types.Message, state: FSMContext):
+        await process_first_name(message, state)
+    
+    @dp.message(BotStates.waiting_for_phone)
+    async def phone_handler(message: types.Message, state: FSMContext):
+        await process_phone_and_create_payment(message, state, bot)
+    
+    @dp.message(BotStates.warehouse_entering_phone)
+    async def warehouse_phone_handler(message: types.Message, state: FSMContext):
+        await process_warehouse_phone(message, state)
+    
+    @dp.message(BotStates.warehouse_entering_company)
+    async def warehouse_company_handler(message: types.Message, state: FSMContext):
+        await process_warehouse_company(message, state)
+    
+    @dp.message(BotStates.warehouse_entering_vehicle)
+    async def warehouse_vehicle_handler(message: types.Message, state: FSMContext):
+        await process_warehouse_vehicle(message, state)
+    
+    @dp.message(BotStates.warehouse_entering_cargo)
+    async def warehouse_cargo_handler(message: types.Message, state: FSMContext):
+        await process_warehouse_cargo_and_confirm(message, state, bot)
+    
+    @dp.message(F.text)
+    async def text_handler(message: types.Message, state: FSMContext):
+        bot_settings = get_bot_settings(bot_id)
+        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
+        button_texts = bot_settings.get('button_texts', {}) if bot_settings else {}
+        bot_template = bot_settings.get('template', 'keys') if bot_settings else 'keys'
+        
+        text = message.text
+        
+        print(f"[DEBUG Bot {bot_id}] Received text: '{text}'")
+        print(f"[DEBUG Bot {bot_id}] Payment enabled: {payment_enabled}")
+        print(f"[DEBUG Bot {bot_id}] Button texts: {button_texts}")
+        print(f"[DEBUG Bot {bot_id}] Template: {bot_template}")
+        
+        if bot_template == 'keys':
+            free_key_text = button_texts.get('free_key', '🎁 Получить бесплатный ключ')
+            if text == free_key_text or text == '🎁 Получить бесплатный ключ':
+                await handle_free_key(message, bot_id)
+                return
+            
+            if payment_enabled:
+                secret_shop_text = button_texts.get('secret_shop', '🔐 Узнать про Тайную витрину')
+                if text == secret_shop_text or text == '🔐 Узнать про Тайную витрину':
+                    await handle_secret_shop(message, bot_id)
+                    return
+                
+                buy_vip_text = button_texts.get('buy_vip', '💎 Купить VIP-ключ')
+                if text == buy_vip_text or text == '💎 Купить VIP-ключ':
+                    await handle_buy_vip(message, bot_id, state, bot)
+                    return
+            
+            privacy_text = button_texts.get('privacy', '📄 Согласие на обработку данных')
+            if text == privacy_text or text == '📄 Согласие на обработку данных':
+                await handle_privacy_policy(message, bot_id)
+                return
+            
+            help_text = button_texts.get('help', '❓ Помощь')
+            if text == help_text or text == '❓ Помощь':
+                await handle_help(message)
+                return
+        
+        if bot_template == 'shop':
+            if text == '🛍 Каталог' or text == '🛍️ Каталог товаров':
+                await handle_shop_catalog(message, bot_id)
+                return
+            
+            if text == '🛒 Корзина':
+                await handle_view_cart(message, bot_id)
+                return
+            
+            if text == '⬅ Главное меню':
+                await cmd_start(message, bot_id)
+                return
+            
+            categories = get_shop_categories(bot_id)
+            for cat in categories:
+                emoji = cat.get('emoji', '📦')
+                button_text = f"{emoji} {cat['name']}"
+                if text == button_text or text == cat['name']:
+                    await handle_category_products(message, bot_id, cat['name'])
+                    return
+        
+        if bot_template == 'warehouse':
+            if text == '📅 Забронировать время':
+                await handle_warehouse_booking_start(message, bot_id, state)
+                return
+            
+            if text == '📋 Мои бронирования':
+                await handle_warehouse_my_bookings(message, bot_id)
+                return
+            
+            if text == 'ℹ️ Информация':
+                await handle_warehouse_info(message, bot_id)
+                return
+    
+    @dp.callback_query()
+    async def callback_handler_wrapper(callback: types.CallbackQuery, state: FSMContext):
+        await callback_handler(callback, bot_id, state, bot)
+    
+    # Обрабатываем Update
+    update = types.Update(**update_data)
+    await dp.feed_update(bot, update)
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
     Business: Telegram bot engine - webhook endpoint for bot messages
@@ -1800,26 +1929,64 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if method == 'POST':
-        body_str = event.get('body', '{}') or '{}'
-        body_data = json.loads(body_str) if body_str else {}
-        bot_id = body_data.get('bot_id')
+        # Проверяем формат URL: /webhook/{bot_id}
+        path = event.get('url', '')
+        path_params = event.get('pathParams', {})
+        
+        # Извлекаем bot_id из path или params
+        bot_id = None
+        if path.startswith('/webhook/'):
+            try:
+                bot_id = int(path.split('/webhook/')[1].split('/')[0])
+            except:
+                pass
+        
+        if not bot_id and path_params:
+            bot_id = path_params.get('bot_id')
+            if bot_id:
+                try:
+                    bot_id = int(bot_id)
+                except:
+                    bot_id = None
         
         if not bot_id:
-            return {
-                'statusCode': 400,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                },
-                'body': json.dumps({'error': 'bot_id required'}),
-                'isBase64Encoded': False
-            }
+            # Старый формат: bot_id в body
+            body_str = event.get('body', '{}') or '{}'
+            body_data = json.loads(body_str) if body_str else {}
+            bot_id = body_data.get('bot_id')
         
-        update = types.Update(**body_data.get('update', {}))
+        if not bot_id:
+            # Webhook от Telegram - весь body это Update
+            body_str = event.get('body', '{}') or '{}'
+            try:
+                update_data = json.loads(body_str) if body_str else {}
+                # Пробуем извлечь bot_id из chat или message
+                # В webhook от Telegram нет bot_id, он определяется по URL
+                return {
+                    'statusCode': 400,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'bot_id required in URL path: /webhook/{bot_id}'}),
+                    'isBase64Encoded': False
+                }
+            except:
+                return {
+                    'statusCode': 400,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'Invalid request format'}),
+                    'isBase64Encoded': False
+                }
         
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # Получаем Update из body
+        body_str = event.get('body', '{}') or '{}'
+        update_data = json.loads(body_str) if body_str else {}
         
+        # Проверяем что бот активен
         active_bots = get_active_bots()
         bot_data = next((b for b in active_bots if b['id'] == bot_id), None)
         
@@ -1834,15 +2001,35 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False
             }
         
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': json.dumps({'message': 'Update processed'}),
-            'isBase64Encoded': False
-        }
+        # Обрабатываем Update
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(process_update(bot_id, update_data))
+            loop.close()
+            
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'ok': True}),
+                'isBase64Encoded': False
+            }
+        except Exception as e:
+            print(f"[ERROR] Processing update: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'statusCode': 500,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'error': str(e)}),
+                'isBase64Encoded': False
+            }
     
     return {
         'statusCode': 405,
