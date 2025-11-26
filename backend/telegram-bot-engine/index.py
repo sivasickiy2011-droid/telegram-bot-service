@@ -911,9 +911,6 @@ async def run_bot(bot_data: Dict):
     dp = Dispatcher(storage=storage)
     bot_id = bot_data['id']
     
-    bot_settings = get_bot_settings(bot_id)
-    payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
-    
     @dp.message(Command("start"))
     async def start_handler(message: types.Message, state: FSMContext):
         await cmd_start(message, bot_id)
@@ -923,34 +920,49 @@ async def run_bot(bot_data: Dict):
     async def free_key_handler(message: types.Message):
         await handle_free_key(message, bot_id)
     
-    if payment_enabled:
-        @dp.message(F.text == "🔐 Узнать про Тайную витрину")
-        async def secret_shop_handler(message: types.Message):
-            await handle_secret_shop(message, bot_id)
-        
-        @dp.message(F.text == "💎 Купить VIP-ключ")
-        async def buy_vip_handler(message: types.Message, state: FSMContext):
-            await handle_buy_vip(message, bot_id, state, bot)
-        
-        @dp.message(F.text == "📄 Согласие на обработку данных")
-        async def privacy_handler(message: types.Message):
-            await handle_privacy_policy(message, bot_id)
-        
-        @dp.message(F.text == "❓ Помощь")
-        async def help_handler(message: types.Message):
-            await handle_help(message)
-        
-        @dp.message(BotStates.waiting_for_last_name)
-        async def last_name_handler(message: types.Message, state: FSMContext):
-            await process_last_name(message, state)
-        
-        @dp.message(BotStates.waiting_for_first_name)
-        async def first_name_handler(message: types.Message, state: FSMContext):
-            await process_first_name(message, state)
-        
-        @dp.message(BotStates.waiting_for_phone)
-        async def phone_handler(message: types.Message, state: FSMContext):
-            await process_phone_and_create_payment(message, state, bot)
+    @dp.message(F.text == "🔐 Узнать про Тайную витрину")
+    async def secret_shop_handler(message: types.Message):
+        bot_settings = get_bot_settings(bot_id)
+        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
+        if not payment_enabled:
+            return
+        await handle_secret_shop(message, bot_id)
+    
+    @dp.message(F.text == "💎 Купить VIP-ключ")
+    async def buy_vip_handler(message: types.Message, state: FSMContext):
+        bot_settings = get_bot_settings(bot_id)
+        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
+        if not payment_enabled:
+            return
+        await handle_buy_vip(message, bot_id, state, bot)
+    
+    @dp.message(F.text == "📄 Согласие на обработку данных")
+    async def privacy_handler(message: types.Message):
+        bot_settings = get_bot_settings(bot_id)
+        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
+        if not payment_enabled:
+            return
+        await handle_privacy_policy(message, bot_id)
+    
+    @dp.message(F.text == "❓ Помощь")
+    async def help_handler(message: types.Message):
+        bot_settings = get_bot_settings(bot_id)
+        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
+        if not payment_enabled:
+            return
+        await handle_help(message)
+    
+    @dp.message(BotStates.waiting_for_last_name)
+    async def last_name_handler(message: types.Message, state: FSMContext):
+        await process_last_name(message, state)
+    
+    @dp.message(BotStates.waiting_for_first_name)
+    async def first_name_handler(message: types.Message, state: FSMContext):
+        await process_first_name(message, state)
+    
+    @dp.message(BotStates.waiting_for_phone)
+    async def phone_handler(message: types.Message, state: FSMContext):
+        await process_phone_and_create_payment(message, state, bot)
     
     @dp.callback_query()
     async def callback_handler_wrapper(callback: types.CallbackQuery, state: FSMContext):
