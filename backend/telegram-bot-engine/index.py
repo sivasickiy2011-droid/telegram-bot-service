@@ -9,6 +9,7 @@ from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.base import BaseStorage, StorageKey, StateType
 from aiogram.fsm.storage.memory import MemoryStorage
 import qrcode
 from io import BytesIO
@@ -29,6 +30,68 @@ class BotStates(StatesGroup):
     warehouse_entering_company = State()
     warehouse_entering_vehicle = State()
     warehouse_entering_cargo = State()
+
+class PostgresStorage(BaseStorage):
+    '''FSM хранилище в PostgreSQL для webhook режима'''
+    
+    async def set_state(self, key: StorageKey, state: StateType = None) -> None:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        state_str = state.state if state else ''
+        cursor.execute(
+            f'''INSERT INTO t_p5255237_telegram_bot_service.bot_fsm_states 
+               (bot_id, chat_id, user_id, state) 
+               VALUES ({key.bot_id}, {key.chat_id}, {key.user_id}, '{state_str}')
+               ON CONFLICT (bot_id, chat_id, user_id) 
+               DO UPDATE SET state = '{state_str}', updated_at = CURRENT_TIMESTAMP'''
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    
+    async def get_state(self, key: StorageKey) -> Optional[str]:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            f'''SELECT state FROM t_p5255237_telegram_bot_service.bot_fsm_states 
+               WHERE bot_id = {key.bot_id} AND chat_id = {key.chat_id} AND user_id = {key.user_id}'''
+        )
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return result[0] if result and result[0] else None
+    
+    async def set_data(self, key: StorageKey, data: Dict[str, Any]) -> None:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        data_json = json.dumps(data).replace("'", "''")
+        cursor.execute(
+            f'''INSERT INTO t_p5255237_telegram_bot_service.bot_fsm_states 
+               (bot_id, chat_id, user_id, data) 
+               VALUES ({key.bot_id}, {key.chat_id}, {key.user_id}, '{data_json}')
+               ON CONFLICT (bot_id, chat_id, user_id) 
+               DO UPDATE SET data = '{data_json}', updated_at = CURRENT_TIMESTAMP'''
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    
+    async def get_data(self, key: StorageKey) -> Dict[str, Any]:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            f'''SELECT data FROM t_p5255237_telegram_bot_service.bot_fsm_states 
+               WHERE bot_id = {key.bot_id} AND chat_id = {key.chat_id} AND user_id = {key.user_id}'''
+        )
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if result and result[0]:
+            return json.loads(result[0])
+        return {}
+    
+    async def close(self) -> None:
+        pass
 
 def get_db_connection():
     '''Создает подключение к базе данных'''
@@ -1771,7 +1834,7 @@ async def process_update(bot_id: int, update_data: Dict[str, Any]) -> None:
         return
     
     bot = Bot(token=bot_settings['telegram_token'])
-    storage = MemoryStorage()
+    storage = PostgresStorage()
     dp = Dispatcher(storage=storage)
     
     # Регистрируем все обработчики (копия из run_bot)
