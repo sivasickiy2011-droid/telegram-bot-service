@@ -41,10 +41,9 @@ class PostgresStorage(BaseStorage):
             state_str = state.state if state else ''
             state_str_escaped = state_str.replace("'", "''")
             
-            # Все ID передаём как строки и кастуем в нужные типы
             query = f'''INSERT INTO t_p5255237_telegram_bot_service.bot_fsm_states 
                    (bot_id, chat_id, user_id, state) 
-                   VALUES ('{key.bot_id}'::integer, '{key.chat_id}'::bigint, '{key.user_id}'::bigint, '{state_str_escaped}')
+                   VALUES ({key.bot_id}, {key.chat_id}, {key.user_id}, '{state_str_escaped}')
                    ON CONFLICT (bot_id, chat_id, user_id) 
                    DO UPDATE SET state = '{state_str_escaped}', updated_at = CURRENT_TIMESTAMP'''
             
@@ -60,7 +59,7 @@ class PostgresStorage(BaseStorage):
             conn = get_db_connection()
             cursor = conn.cursor()
             query = f'''SELECT state FROM t_p5255237_telegram_bot_service.bot_fsm_states 
-                   WHERE bot_id = '{key.bot_id}'::integer AND chat_id = '{key.chat_id}'::bigint AND user_id = '{key.user_id}'::bigint'''
+                   WHERE bot_id = {key.bot_id} AND chat_id = {key.chat_id} AND user_id = {key.user_id}'''
             cursor.execute(query)
             result = cursor.fetchone()
             cursor.close()
@@ -78,7 +77,7 @@ class PostgresStorage(BaseStorage):
             
             query = f'''INSERT INTO t_p5255237_telegram_bot_service.bot_fsm_states 
                    (bot_id, chat_id, user_id, data) 
-                   VALUES ('{key.bot_id}'::integer, '{key.chat_id}'::bigint, '{key.user_id}'::bigint, '{data_json}')
+                   VALUES ({key.bot_id}, {key.chat_id}, {key.user_id}, '{data_json}')
                    ON CONFLICT (bot_id, chat_id, user_id) 
                    DO UPDATE SET data = '{data_json}', updated_at = CURRENT_TIMESTAMP'''
             
@@ -94,7 +93,7 @@ class PostgresStorage(BaseStorage):
             conn = get_db_connection()
             cursor = conn.cursor()
             query = f'''SELECT data FROM t_p5255237_telegram_bot_service.bot_fsm_states 
-                   WHERE bot_id = '{key.bot_id}'::integer AND chat_id = '{key.chat_id}'::bigint AND user_id = '{key.user_id}'::bigint'''
+                   WHERE bot_id = {key.bot_id} AND chat_id = {key.chat_id} AND user_id = {key.user_id}'''
             cursor.execute(query)
             result = cursor.fetchone()
             cursor.close()
