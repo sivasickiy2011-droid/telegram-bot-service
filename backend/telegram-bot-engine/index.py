@@ -1929,58 +1929,70 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if method == 'POST':
-        # Проверяем формат URL: /webhook/{bot_id}
-        path = event.get('url', '')
-        path_params = event.get('pathParams', {})
-        
-        # Извлекаем bot_id из path или params
+        # Извлекаем bot_id из URL разными способами
         bot_id = None
-        if path.startswith('/webhook/'):
+        
+        # Способ 1: из event.url
+        path = event.get('url', '')
+        if path and '/webhook/' in path:
             try:
                 bot_id = int(path.split('/webhook/')[1].split('/')[0])
             except:
                 pass
         
-        if not bot_id and path_params:
-            bot_id = path_params.get('bot_id')
-            if bot_id:
+        # Способ 2: из event.params (path params)
+        if not bot_id:
+            params = event.get('params', {})
+            if params and 'bot_id' in params:
                 try:
-                    bot_id = int(bot_id)
+                    bot_id = int(params['bot_id'])
                 except:
-                    bot_id = None
+                    pass
         
+        # Способ 3: из event.pathParams
         if not bot_id:
-            # Старый формат: bot_id в body
-            body_str = event.get('body', '{}') or '{}'
-            body_data = json.loads(body_str) if body_str else {}
-            bot_id = body_data.get('bot_id')
+            path_params = event.get('pathParams', {})
+            if path_params and 'bot_id' in path_params:
+                try:
+                    bot_id = int(path_params['bot_id'])
+                except:
+                    pass
         
+        # Способ 4: из requestContext (Yandex Cloud Functions)
         if not bot_id:
-            # Webhook от Telegram - весь body это Update
-            body_str = event.get('body', '{}') or '{}'
-            try:
-                update_data = json.loads(body_str) if body_str else {}
-                # Пробуем извлечь bot_id из chat или message
-                # В webhook от Telegram нет bot_id, он определяется по URL
-                return {
-                    'statusCode': 400,
-                    'headers': {
-                        'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*'
-                    },
-                    'body': json.dumps({'error': 'bot_id required in URL path: /webhook/{bot_id}'}),
-                    'isBase64Encoded': False
-                }
-            except:
-                return {
-                    'statusCode': 400,
-                    'headers': {
-                        'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*'
-                    },
-                    'body': json.dumps({'error': 'Invalid request format'}),
-                    'isBase64Encoded': False
-                }
+            request_context = event.get('requestContext', {})
+            http_context = request_context.get('http', {})
+            req_path = http_context.get('path', '')
+            if req_path and '/webhook/' in req_path:
+                try:
+                    bot_id = int(req_path.split('/webhook/')[1].split('/')[0])
+                except:
+                    pass
+        
+        # Если bot_id не найден, логируем event и возвращаем ошибку
+        if not bot_id:
+            print(f"[ERROR] Cannot extract bot_id from event. Event keys: {list(event.keys())}")
+            print(f"[ERROR] event.url: {event.get('url')}")
+            print(f"[ERROR] event.params: {event.get('params')}")
+            print(f"[ERROR] event.pathParams: {event.get('pathParams')}")
+            print(f"[ERROR] event.requestContext: {event.get('requestContext')}")
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'error': 'bot_id required in URL path: /webhook/{bot_id}',
+                    'debug': {
+                        'url': event.get('url'),
+                        'params': event.get('params'),
+                        'pathParams': event.get('pathParams'),
+                        'requestContext': event.get('requestContext')
+                    }
+                }),
+                'isBase64Encoded': False
+            }
         
         # Получаем Update из body
         body_str = event.get('body', '{}') or '{}'
