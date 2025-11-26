@@ -35,62 +35,76 @@ class PostgresStorage(BaseStorage):
     '''FSM хранилище в PostgreSQL для webhook режима'''
     
     async def set_state(self, key: StorageKey, state: StateType = None) -> None:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        state_str = state.state if state else ''
-        state_str_escaped = state_str.replace("'", "''")
-        
-        # Используем строковые значения для BIGINT чисел
-        query = f'''INSERT INTO t_p5255237_telegram_bot_service.bot_fsm_states 
-               (bot_id, chat_id, user_id, state) 
-               VALUES ({key.bot_id}, '{key.chat_id}'::bigint, '{key.user_id}'::bigint, '{state_str_escaped}')
-               ON CONFLICT (bot_id, chat_id, user_id) 
-               DO UPDATE SET state = '{state_str_escaped}', updated_at = CURRENT_TIMESTAMP'''
-        
-        cursor.execute(query)
-        conn.commit()
-        cursor.close()
-        conn.close()
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            state_str = state.state if state else ''
+            state_str_escaped = state_str.replace("'", "''")
+            
+            # Все ID передаём как строки и кастуем в нужные типы
+            query = f'''INSERT INTO t_p5255237_telegram_bot_service.bot_fsm_states 
+                   (bot_id, chat_id, user_id, state) 
+                   VALUES ('{key.bot_id}'::integer, '{key.chat_id}'::bigint, '{key.user_id}'::bigint, '{state_str_escaped}')
+                   ON CONFLICT (bot_id, chat_id, user_id) 
+                   DO UPDATE SET state = '{state_str_escaped}', updated_at = CURRENT_TIMESTAMP'''
+            
+            cursor.execute(query)
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"[ERROR] set_state failed: {e}")
     
     async def get_state(self, key: StorageKey) -> Optional[str]:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        query = f'''SELECT state FROM t_p5255237_telegram_bot_service.bot_fsm_states 
-               WHERE bot_id = {key.bot_id} AND chat_id = '{key.chat_id}'::bigint AND user_id = '{key.user_id}'::bigint'''
-        cursor.execute(query)
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return result[0] if result and result[0] else None
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            query = f'''SELECT state FROM t_p5255237_telegram_bot_service.bot_fsm_states 
+                   WHERE bot_id = '{key.bot_id}'::integer AND chat_id = '{key.chat_id}'::bigint AND user_id = '{key.user_id}'::bigint'''
+            cursor.execute(query)
+            result = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            return result[0] if result and result[0] else None
+        except Exception as e:
+            print(f"[ERROR] get_state failed: {e}")
+            return None
     
     async def set_data(self, key: StorageKey, data: Dict[str, Any]) -> None:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        data_json = json.dumps(data).replace("'", "''")
-        
-        query = f'''INSERT INTO t_p5255237_telegram_bot_service.bot_fsm_states 
-               (bot_id, chat_id, user_id, data) 
-               VALUES ({key.bot_id}, '{key.chat_id}'::bigint, '{key.user_id}'::bigint, '{data_json}')
-               ON CONFLICT (bot_id, chat_id, user_id) 
-               DO UPDATE SET data = '{data_json}', updated_at = CURRENT_TIMESTAMP'''
-        
-        cursor.execute(query)
-        conn.commit()
-        cursor.close()
-        conn.close()
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            data_json = json.dumps(data).replace("'", "''")
+            
+            query = f'''INSERT INTO t_p5255237_telegram_bot_service.bot_fsm_states 
+                   (bot_id, chat_id, user_id, data) 
+                   VALUES ('{key.bot_id}'::integer, '{key.chat_id}'::bigint, '{key.user_id}'::bigint, '{data_json}')
+                   ON CONFLICT (bot_id, chat_id, user_id) 
+                   DO UPDATE SET data = '{data_json}', updated_at = CURRENT_TIMESTAMP'''
+            
+            cursor.execute(query)
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except Exception as e:
+            print(f"[ERROR] set_data failed: {e}")
     
     async def get_data(self, key: StorageKey) -> Dict[str, Any]:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        query = f'''SELECT data FROM t_p5255237_telegram_bot_service.bot_fsm_states 
-               WHERE bot_id = {key.bot_id} AND chat_id = '{key.chat_id}'::bigint AND user_id = '{key.user_id}'::bigint'''
-        cursor.execute(query)
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        if result and result[0]:
-            return json.loads(result[0])
-        return {}
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            query = f'''SELECT data FROM t_p5255237_telegram_bot_service.bot_fsm_states 
+                   WHERE bot_id = '{key.bot_id}'::integer AND chat_id = '{key.chat_id}'::bigint AND user_id = '{key.user_id}'::bigint'''
+            cursor.execute(query)
+            result = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if result and result[0]:
+                return json.loads(result[0])
+            return {}
+        except Exception as e:
+            print(f"[ERROR] get_data failed: {e}")
+            return {}
     
     async def close(self) -> None:
         pass
