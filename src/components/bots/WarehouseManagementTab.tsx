@@ -287,23 +287,42 @@ const WarehouseManagementTab = ({ botId }: WarehouseManagementTabProps) => {
         </Card>
       </div>
 
-      <Card className="p-4 bg-blue-500/10 border-blue-500/20">
-        <div className="flex items-start gap-3">
-          <Icon name="Info" size={20} className="text-blue-500 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium mb-1 text-blue-600 dark:text-blue-400">
-              Как работает бронирование склада
-            </p>
-            <ul className="text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Пользователи выбирают дату и время из доступных слотов</li>
-              <li>Занятые слоты автоматически скрываются</li>
-              <li>Прошедшие даты недоступны для бронирования</li>
-              <li>Пользователи могут отменить бронь из бота</li>
-              <li>Администратор может отменить любую бронь</li>
-            </ul>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="p-4 bg-blue-500/10 border-blue-500/20">
+          <div className="flex items-start gap-3">
+            <Icon name="Info" size={20} className="text-blue-500 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium mb-1 text-blue-600 dark:text-blue-400">
+                Как работает бронирование склада
+              </p>
+              <ul className="text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Пользователи выбирают дату и время из доступных слотов</li>
+                <li>Занятые слоты автоматически скрываются</li>
+                <li>Прошедшие даты недоступны для бронирования</li>
+                <li>Пользователи могут отменить бронь из бота</li>
+                <li>Администратор может отменить любую бронь</li>
+              </ul>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+
+        <Card className="p-4 bg-green-500/10 border-green-500/20">
+          <div className="flex items-start gap-3">
+            <Icon name="Bell" size={20} className="text-green-500 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium mb-1 text-green-600 dark:text-green-400">
+                Система уведомлений
+              </p>
+              <ul className="text-muted-foreground space-y-1 list-disc list-inside">
+                <li><strong>При создании брони:</strong> администраторы получают уведомление с данными клиента</li>
+                <li><strong>При отмене:</strong> администраторы узнают об отмене бронирования</li>
+                <li><strong>За 24 часа до разгрузки:</strong> клиент и администраторы получают напоминание</li>
+                <li>Все уведомления содержат полную информацию о бронировании</li>
+              </ul>
+            </div>
+          </div>
+        </Card>
+      </div>
     </TabsContent>
   );
 };

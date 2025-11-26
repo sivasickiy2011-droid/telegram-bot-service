@@ -1193,6 +1193,28 @@ async def process_warehouse_cargo_and_confirm(message: types.Message, state: FSM
             f"Мы ждем вас в указанное время. За день до разгрузки придет напоминание."
         )
         await message.answer(text, parse_mode="Markdown")
+        
+        # Отправить уведомление администраторам о новом бронировании
+        bot_settings = get_bot_settings(bot_id)
+        admin_ids = bot_settings.get('admin_telegram_ids', []) if bot_settings else []
+        
+        admin_notification = (
+            f"🔔 *Новое бронирование склада*\n\n"
+            f"📅 Дата: {date_obj.strftime('%d.%m.%Y')}\n"
+            f"🕐 Время: {time_str}\n\n"
+            f"👤 Клиент:\n"
+            f"• Telegram: @{username} (ID: {telegram_user_id})\n"
+            f"• Телефон: {phone}\n"
+            f"• Компания: {company}\n\n"
+            f"🚚 Транспорт: {vehicle}\n"
+            f"📦 Груз: {cargo}"
+        )
+        
+        for admin_id in admin_ids:
+            try:
+                await bot.send_message(admin_id, admin_notification, parse_mode='Markdown')
+            except:
+                pass
     else:
         await message.answer(
             "❌ Ошибка при создании бронирования. Возможно, это время уже занято. "
@@ -1502,9 +1524,48 @@ async def callback_handler(callback: types.CallbackQuery, bot_id: int, state: FS
         await handle_warehouse_time_selected(callback, bot_id, state)
     elif callback.data.startswith("warehouse_cancel:"):
         booking_id = int(callback.data.split(":")[1])
+        
+        # Получить информацию о бронировании перед отменой
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        query = f'''SELECT * FROM t_p5255237_telegram_bot_service.warehouse_bookings 
+                   WHERE id = {booking_id}'''
+        cursor.execute(query)
+        booking = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
         success = cancel_warehouse_booking(booking_id)
         if success:
             await callback.answer("✅ Бронирование отменено", show_alert=True)
+            
+            # Уведомить администраторов об отмене
+            if booking:
+                bot_settings = get_bot_settings(bot_id)
+                admin_ids = bot_settings.get('admin_telegram_ids', []) if bot_settings else []
+                
+                date_str = booking['booking_date'].strftime('%d.%m.%Y')
+                time_str = str(booking['booking_time'])[:5]
+                username = booking.get('telegram_username', 'без username')
+                
+                admin_notification = (
+                    f"🔔 *Бронирование отменено клиентом*\n\n"
+                    f"📅 Дата: {date_str}\n"
+                    f"🕐 Время: {time_str}\n\n"
+                    f"👤 Клиент:\n"
+                    f"• Telegram: @{username} (ID: {booking['telegram_user_id']})\n"
+                    f"• Телефон: {booking['user_phone']}\n"
+                    f"• Компания: {booking['user_company']}\n\n"
+                    f"🚚 Транспорт: {booking['vehicle_type']}\n"
+                    f"📦 Груз: {booking['cargo_description']}"
+                )
+                
+                for admin_id in admin_ids:
+                    try:
+                        await bot.send_message(admin_id, admin_notification, parse_mode='Markdown')
+                    except:
+                        pass
+            
             await handle_warehouse_my_bookings(callback.message, bot_id)
         else:
             await callback.answer("❌ Ошибка при отмене", show_alert=True)
