@@ -551,15 +551,18 @@ async def cmd_start(message: types.Message, bot_id: int):
     await message.answer(welcome_text, reply_markup=create_main_menu_keyboard(payment_enabled, button_texts))
 
 async def handle_free_key(message: types.Message, bot_id: int):
-    '''Обработка запроса бесплатного ключа'''
+    '''Обработка запроса бесплатного ключа (только для шаблона keys)'''
     user_id = register_telegram_user(bot_id, message.from_user)
     telegram_user_id = message.from_user.id
     qr_key = get_free_qr_key(bot_id, user_id, telegram_user_id)
     
     bot_settings = get_bot_settings(bot_id)
     message_texts = bot_settings.get('message_texts', {}) if bot_settings else {}
+    bot_template = bot_settings.get('template', 'keys') if bot_settings else 'keys'
+    payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
     
     print(f"[DEBUG] Bot {bot_id} message_texts: {message_texts}")
+    print(f"[DEBUG] Bot {bot_id} template: {bot_template}")
     
     admin_note = ""
     if is_admin(bot_id, telegram_user_id):
@@ -576,10 +579,9 @@ async def handle_free_key(message: types.Message, bot_id: int):
         )
         text = text_template.format(code_number=qr_key['code_number']) + admin_note
         
-        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
         keyboard_buttons = []
         
-        if payment_enabled:
+        if bot_template == 'keys' and payment_enabled:
             keyboard_buttons.extend([
                 [InlineKeyboardButton(text="🔐 Что такое Тайная витрина?", callback_data="secret_shop")],
                 [InlineKeyboardButton(text="💎 Купить VIP-ключ", callback_data="buy_vip")]
@@ -604,11 +606,16 @@ async def handle_free_key(message: types.Message, bot_id: int):
             "Но вы всё ещё можете получить VIP-ключ и попасть в Тайную витрину!"
         )
         
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💎 Купить VIP-ключ", callback_data="buy_vip")]
-        ])
+        keyboard_buttons = []
+        if bot_template == 'keys' and payment_enabled:
+            keyboard_buttons.append([InlineKeyboardButton(text="💎 Купить VIP-ключ", callback_data="buy_vip")])
         
-        await message.answer(text, reply_markup=keyboard)
+        keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons) if keyboard_buttons else None
+        
+        if keyboard:
+            await message.answer(text, reply_markup=keyboard)
+        else:
+            await message.answer(text)
 
 async def handle_secret_shop(message: types.Message, bot_id: int = None):
     '''Информация о Тайной витрине'''
@@ -1665,43 +1672,41 @@ async def run_bot(bot_data: Dict):
         bot_settings = get_bot_settings(bot_id)
         payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
         button_texts = bot_settings.get('button_texts', {}) if bot_settings else {}
+        bot_template = bot_settings.get('template', 'keys') if bot_settings else 'keys'
         
         text = message.text
         
         print(f"[DEBUG Bot {bot_id}] Received text: '{text}'")
         print(f"[DEBUG Bot {bot_id}] Payment enabled: {payment_enabled}")
         print(f"[DEBUG Bot {bot_id}] Button texts: {button_texts}")
+        print(f"[DEBUG Bot {bot_id}] Template: {bot_template}")
         
-        free_key_text = button_texts.get('free_key', '🎁 Получить бесплатный ключ')
-        if text == free_key_text or text == '🎁 Получить бесплатный ключ':
-            await handle_free_key(message, bot_id)
-            return
-        
-        if not payment_enabled:
-            print(f"[DEBUG Bot {bot_id}] Payment disabled, ignoring message")
-            return
-        
-        secret_shop_text = button_texts.get('secret_shop', '🔐 Узнать про Тайную витрину')
-        if text == secret_shop_text or text == '🔐 Узнать про Тайную витрину':
-            await handle_secret_shop(message, bot_id)
-            return
-        
-        buy_vip_text = button_texts.get('buy_vip', '💎 Купить VIP-ключ')
-        if text == buy_vip_text or text == '💎 Купить VIP-ключ':
-            await handle_buy_vip(message, bot_id, state, bot)
-            return
-        
-        privacy_text = button_texts.get('privacy', '📄 Согласие на обработку данных')
-        if text == privacy_text or text == '📄 Согласие на обработку данных':
-            await handle_privacy_policy(message, bot_id)
-            return
-        
-        help_text = button_texts.get('help', '❓ Помощь')
-        if text == help_text or text == '❓ Помощь':
-            await handle_help(message)
-            return
-        
-        bot_template = bot_settings.get('template', 'keys') if bot_settings else 'keys'
+        if bot_template == 'keys':
+            free_key_text = button_texts.get('free_key', '🎁 Получить бесплатный ключ')
+            if text == free_key_text or text == '🎁 Получить бесплатный ключ':
+                await handle_free_key(message, bot_id)
+                return
+            
+            if payment_enabled:
+                secret_shop_text = button_texts.get('secret_shop', '🔐 Узнать про Тайную витрину')
+                if text == secret_shop_text or text == '🔐 Узнать про Тайную витрину':
+                    await handle_secret_shop(message, bot_id)
+                    return
+                
+                buy_vip_text = button_texts.get('buy_vip', '💎 Купить VIP-ключ')
+                if text == buy_vip_text or text == '💎 Купить VIP-ключ':
+                    await handle_buy_vip(message, bot_id, state, bot)
+                    return
+            
+            privacy_text = button_texts.get('privacy', '📄 Согласие на обработку данных')
+            if text == privacy_text or text == '📄 Согласие на обработку данных':
+                await handle_privacy_policy(message, bot_id)
+                return
+            
+            help_text = button_texts.get('help', '❓ Помощь')
+            if text == help_text or text == '❓ Помощь':
+                await handle_help(message)
+                return
         
         if bot_template == 'shop':
             if text == '🛍 Каталог' or text == '🛍️ Каталог товаров':
