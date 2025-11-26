@@ -1209,9 +1209,21 @@ async def handle_warehouse_booking_start(message: types.Message, bot_id: int, st
     
     text = "📅 *Выберите дату для разгрузки:*\n\n"
     
+    # Словарь для русских названий дней недели
+    weekday_names = {
+        0: 'Понедельник',
+        1: 'Вторник',
+        2: 'Среда',
+        3: 'Четверг',
+        4: 'Пятница',
+        5: 'Суббота',
+        6: 'Воскресенье'
+    }
+    
     keyboard_buttons = []
     for i, date in enumerate(available_dates[:10]):
-        date_str = date.strftime('%d.%m.%Y (%a)')
+        weekday_ru = weekday_names[date.weekday()]
+        date_str = f"{date.strftime('%d.%m.%Y')} ({weekday_ru})"
         callback_data = f"warehouse_date:{date.strftime('%Y-%m-%d')}"
         keyboard_buttons.append([InlineKeyboardButton(text=date_str, callback_data=callback_data)])
     
