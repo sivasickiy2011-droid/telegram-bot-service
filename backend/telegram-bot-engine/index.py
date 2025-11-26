@@ -43,7 +43,7 @@ class PostgresStorage(BaseStorage):
             
             query = f'''INSERT INTO t_p5255237_telegram_bot_service.bot_fsm_states 
                    (bot_id, chat_id, user_id, state) 
-                   VALUES ({key.bot_id}, {key.chat_id}::bigint, {key.user_id}::bigint, '{state_str_escaped}')
+                   VALUES ({key.bot_id}, '{key.chat_id}'::bigint, '{key.user_id}'::bigint, '{state_str_escaped}')
                    ON CONFLICT (bot_id, chat_id, user_id) 
                    DO UPDATE SET state = '{state_str_escaped}', updated_at = CURRENT_TIMESTAMP'''
             
@@ -77,7 +77,7 @@ class PostgresStorage(BaseStorage):
             
             query = f'''INSERT INTO t_p5255237_telegram_bot_service.bot_fsm_states 
                    (bot_id, chat_id, user_id, data) 
-                   VALUES ({key.bot_id}, {key.chat_id}::bigint, {key.user_id}::bigint, '{data_json}')
+                   VALUES ({key.bot_id}, '{key.chat_id}'::bigint, '{key.user_id}'::bigint, '{data_json}')
                    ON CONFLICT (bot_id, chat_id, user_id) 
                    DO UPDATE SET data = '{data_json}', updated_at = CURRENT_TIMESTAMP'''
             
