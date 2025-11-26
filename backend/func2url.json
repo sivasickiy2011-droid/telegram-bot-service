@@ -1,4 +1,5 @@
 {
+  "shop-products": "https://functions.poehali.dev/7fad7f6c-0746-49e0-8f7a-5c0d526b6e7d",
   "check-payment-status": "https://functions.poehali.dev/b4079ccb-abcb-4171-b656-2462d93e1ac9",
   "warehouse-bookings": "https://functions.poehali.dev/e51fcc06-65c7-473d-a340-2d67fea6ea2d",
   "create-payment": "https://functions.poehali.dev/99bbc805-8eab-41cb-89c3-b0dd02989907",

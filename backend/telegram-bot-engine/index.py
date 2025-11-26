@@ -18,6 +18,11 @@ class BotStates(StatesGroup):
     waiting_for_last_name = State()
     waiting_for_first_name = State()
     waiting_for_phone = State()
+    browsing_catalog = State()
+    viewing_product = State()
+    in_cart = State()
+    checkout_address = State()
+    checkout_phone = State()
 
 def get_db_connection():
     '''Создает подключение к базе данных'''
@@ -226,6 +231,78 @@ def check_privacy_consent(bot_id: int, user_id: int) -> bool:
     conn.close()
     return result is not None
 
+def get_shop_categories(bot_id: int) -> list:
+    '''Получить категории товаров магазина'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    query = f'''SELECT * FROM t_p5255237_telegram_bot_service.shop_categories 
+               WHERE bot_id = {bot_id} AND is_active = true 
+               ORDER BY sort_order, name'''
+    cursor.execute(query)
+    categories = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [dict(cat) for cat in categories]
+
+def get_shop_products(bot_id: int, category_id: int = None) -> list:
+    '''Получить товары магазина, опционально по категории'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    if category_id:
+        query = f'''SELECT * FROM t_p5255237_telegram_bot_service.shop_products 
+                   WHERE bot_id = {bot_id} AND category_id = {category_id} AND is_available = true 
+                   ORDER BY sort_order, name'''
+    else:
+        query = f'''SELECT * FROM t_p5255237_telegram_bot_service.shop_products 
+                   WHERE bot_id = {bot_id} AND is_available = true 
+                   ORDER BY sort_order, name'''
+    cursor.execute(query)
+    products = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [dict(prod) for prod in products]
+
+def add_to_cart(bot_id: int, user_id: int, product_id: int, quantity: int = 1) -> bool:
+    '''Добавить товар в корзину пользователя'''
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = f'''INSERT INTO t_p5255237_telegram_bot_service.shop_carts 
+               (bot_id, user_id, product_id, quantity) 
+               VALUES ({bot_id}, {user_id}, {product_id}, {quantity})
+               ON CONFLICT (user_id, product_id) 
+               DO UPDATE SET quantity = shop_carts.quantity + {quantity}'''
+    cursor.execute(query)
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return True
+
+def get_user_cart(bot_id: int, user_id: int) -> list:
+    '''Получить корзину пользователя с товарами'''
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    query = f'''SELECT c.id, c.quantity, p.id as product_id, p.name, p.price, p.image_url
+               FROM t_p5255237_telegram_bot_service.shop_carts c
+               JOIN t_p5255237_telegram_bot_service.shop_products p ON c.product_id = p.id
+               WHERE c.bot_id = {bot_id} AND c.user_id = {user_id} AND c.quantity > 0'''
+    cursor.execute(query)
+    cart_items = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return [dict(item) for item in cart_items]
+
+def clear_user_cart(bot_id: int, user_id: int):
+    '''Очистить корзину пользователя после заказа'''
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = f'''UPDATE t_p5255237_telegram_bot_service.shop_carts 
+               SET quantity = 0 
+               WHERE bot_id = {bot_id} AND user_id = {user_id}'''
+    cursor.execute(query)
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 def create_main_menu_keyboard(payment_enabled: bool = True, button_texts: dict = None) -> ReplyKeyboardMarkup:
     '''Создает главное меню с кнопками'''
     if button_texts is None:
@@ -272,10 +349,29 @@ async def cmd_start(message: types.Message, bot_id: int):
     payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
     message_texts = bot_settings.get('message_texts', {}) if bot_settings else {}
     button_texts = bot_settings.get('button_texts', {}) if bot_settings else {}
+    bot_template = bot_settings.get('template', 'keys') if bot_settings else 'keys'
     
     print(f"[DEBUG Bot {bot_id}] /start command - payment_enabled: {payment_enabled}")
     print(f"[DEBUG Bot {bot_id}] /start command - button_texts: {button_texts}")
     print(f"[DEBUG Bot {bot_id}] /start command - message_texts: {message_texts}")
+    print(f"[DEBUG Bot {bot_id}] /start command - template: {bot_template}")
+    
+    if bot_template == 'shop':
+        welcome_text = message_texts.get('welcome', 
+            "🛍 Добро пожаловать в наш магазин!\n\n"
+            "Здесь вы можете выбрать товары из каталога и оформить заказ.\n\n"
+            "Выберите действие:"
+        )
+        
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="🛍️ Каталог товаров")],
+                [KeyboardButton(text="🛒 Корзина")],
+            ],
+            resize_keyboard=True
+        )
+        await message.answer(welcome_text, reply_markup=keyboard)
+        return
     
     welcome_text = message_texts.get('welcome', 
         "🚀 Привет! Я бот POLYTOPE.\n\n"
@@ -707,6 +803,102 @@ async def handle_help(message: types.Message):
     )
     await message.answer(text)
 
+async def handle_shop_catalog(message: types.Message, bot_id: int):
+    '''Показать каталог магазина с категориями'''
+    categories = get_shop_categories(bot_id)
+    
+    if not categories:
+        await message.answer(
+            "🛍 Каталог пока пуст. Администратор еще не добавил товары.",
+            reply_markup=create_main_menu_keyboard(True, {})
+        )
+        return
+    
+    text = "🛍 *Каталог товаров*\n\nВыберите категорию:"
+    
+    keyboard_buttons = []
+    for cat in categories:
+        emoji = cat.get('emoji', '📦')
+        button_text = f"{emoji} {cat['name']}"
+        keyboard_buttons.append([KeyboardButton(text=button_text)])
+    
+    keyboard_buttons.append([KeyboardButton(text="🛒 Корзина")])
+    keyboard_buttons.append([KeyboardButton(text="⬅ Главное меню")])
+    
+    keyboard = ReplyKeyboardMarkup(keyboard=keyboard_buttons, resize_keyboard=True)
+    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+
+async def handle_category_products(message: types.Message, bot_id: int, category_name: str):
+    '''Показать товары в категории'''
+    categories = get_shop_categories(bot_id)
+    category = next((c for c in categories if c['name'] in message.text), None)
+    
+    if not category:
+        return
+    
+    products = get_shop_products(bot_id, category['id'])
+    
+    if not products:
+        await message.answer(f"В категории '{category['name']}' пока нет товаров.")
+        return
+    
+    for product in products[:10]:
+        text = f"*{product['name']}*\n\n"
+        text += f"{product.get('description', 'Описание отсутствует')}\n\n"
+        text += f"💰 Цена: {product['price']} ₽\n"
+        
+        if product.get('stock_quantity', 0) > 0:
+            text += f"📦 В наличии: {product['stock_quantity']} шт."
+        else:
+            text += "⚠️ Нет в наличии"
+        
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="➕ В корзину", callback_data=f"add_to_cart:{product['id']}")],
+        ])
+        
+        if product.get('image_url'):
+            try:
+                await message.answer_photo(
+                    photo=product['image_url'],
+                    caption=text,
+                    reply_markup=keyboard,
+                    parse_mode="Markdown"
+                )
+            except:
+                await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+        else:
+            await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+
+async def handle_view_cart(message: types.Message, bot_id: int):
+    '''Показать корзину пользователя'''
+    user_id = register_telegram_user(bot_id, message.from_user)
+    cart_items = get_user_cart(bot_id, user_id)
+    
+    if not cart_items:
+        await message.answer(
+            "🛒 Ваша корзина пуста\n\nДобавьте товары из каталога!",
+            reply_markup=create_main_menu_keyboard(True, {})
+        )
+        return
+    
+    text = "🛒 *Ваша корзина:*\n\n"
+    total = 0
+    
+    for item in cart_items:
+        subtotal = float(item['price']) * item['quantity']
+        total += subtotal
+        text += f"• {item['name']}\n"
+        text += f"  {item['quantity']} шт. × {item['price']} ₽ = {subtotal} ₽\n\n"
+    
+    text += f"*Итого: {total} ₽*"
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Оформить заказ", callback_data="checkout")],
+        [InlineKeyboardButton(text="🗑 Очистить корзину", callback_data="clear_cart")],
+    ])
+    
+    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+
 async def start_payment_form(callback: types.CallbackQuery, state: FSMContext):
     '''Начало заполнения формы для оплаты'''
     user_data = await state.get_data()
@@ -923,6 +1115,19 @@ async def callback_handler(callback: types.CallbackQuery, bot_id: int, state: FS
         await handle_accept_privacy_payment(callback, bot_id, bot, state)
     elif callback.data == "consent_accepted":
         await callback.answer("Вы уже приняли соглашение ранее", show_alert=True)
+    elif callback.data.startswith("add_to_cart:"):
+        product_id = int(callback.data.split(":")[1])
+        user_id = register_telegram_user(bot_id, callback.from_user)
+        add_to_cart(bot_id, user_id, product_id, 1)
+        await callback.answer("✅ Товар добавлен в корзину!", show_alert=True)
+    elif callback.data == "checkout":
+        await callback.message.answer("🚧 Оформление заказа находится в разработке. Свяжитесь с администратором для оформления.")
+        await callback.answer()
+    elif callback.data == "clear_cart":
+        user_id = register_telegram_user(bot_id, callback.from_user)
+        clear_user_cart(bot_id, user_id)
+        await callback.answer("🗑 Корзина очищена")
+        await handle_view_cart(callback.message, bot_id)
     elif callback.data == "main_menu":
         await cmd_start(callback.message, bot_id)
         await state.clear()
@@ -992,6 +1197,29 @@ async def run_bot(bot_data: Dict):
         if text == help_text or text == '❓ Помощь':
             await handle_help(message)
             return
+        
+        bot_template = bot_settings.get('template', 'keys') if bot_settings else 'keys'
+        
+        if bot_template == 'shop':
+            if text == '🛍 Каталог' or text == '🛍️ Каталог товаров':
+                await handle_shop_catalog(message, bot_id)
+                return
+            
+            if text == '🛒 Корзина':
+                await handle_view_cart(message, bot_id)
+                return
+            
+            if text == '⬅ Главное меню':
+                await cmd_start(message, bot_id)
+                return
+            
+            categories = get_shop_categories(bot_id)
+            for cat in categories:
+                emoji = cat.get('emoji', '📦')
+                button_text = f"{emoji} {cat['name']}"
+                if text == button_text or text == cat['name']:
+                    await handle_category_products(message, bot_id, cat['name'])
+                    return
     
     @dp.callback_query()
     async def callback_handler_wrapper(callback: types.CallbackQuery, state: FSMContext):

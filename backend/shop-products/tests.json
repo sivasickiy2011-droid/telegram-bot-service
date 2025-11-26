@@ -1,0 +1,40 @@
+{
+  "tests": [
+    {
+      "name": "Get categories for bot",
+      "method": "GET",
+      "path": "/?bot_id=1&type=categories",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "categories": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get products for bot",
+      "method": "GET",
+      "path": "/?bot_id=1&type=products",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "products": "array"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create new category",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "type": "category",
+        "bot_id": 1,
+        "name": "Test Category",
+        "emoji": "🛍️"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "category": "object"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ interface Template {
   logic: string;
   gradient: string;
   popular?: boolean;
+  status?: 'ready' | 'development';
 }
 
 const templates: Template[] = [
@@ -25,6 +26,7 @@ const templates: Template[] = [
     icon: 'Key',
     gradient: 'gradient-purple',
     popular: true,
+    status: 'ready',
     features: [
       'Генерация уникальных QR-кодов',
       'Бесплатные и платные ключи',
@@ -60,6 +62,7 @@ const templates: Template[] = [
     icon: 'Brain',
     gradient: 'gradient-blue',
     popular: true,
+    status: 'development',
     features: [
       'ChatGPT 3.5/4 интеграция',
       'YandexGPT интеграция',
@@ -103,6 +106,7 @@ const templates: Template[] = [
     description: 'Бот для технической поддержки с тикет-системой и обратной связью',
     icon: 'Headphones',
     gradient: 'gradient-orange',
+    status: 'development',
     features: [
       'Создание тикетов',
       'Уведомления администратору',
@@ -139,6 +143,7 @@ const templates: Template[] = [
     description: 'Бот-магазин с каталогом товаров, корзиной и интеграцией оплаты',
     icon: 'ShoppingCart',
     gradient: 'gradient-purple',
+    status: 'ready',
     features: [
       'Каталог товаров с категориями',
       'Корзина покупок',
@@ -179,6 +184,7 @@ const templates: Template[] = [
     description: 'Бот для записи на услуги с календарем и управлением слотами',
     icon: 'Calendar',
     gradient: 'gradient-blue',
+    status: 'development',
     features: [
       'Календарь с доступными слотами',
       'Бронирование времени',
@@ -218,6 +224,7 @@ const templates: Template[] = [
     description: 'Бот с квизами, опросами и играми для вовлечения аудитории',
     icon: 'Trophy',
     gradient: 'gradient-orange',
+    status: 'development',
     features: [
       'Создание викторин с вопросами',
       'Система баллов и рейтинг',
@@ -261,6 +268,7 @@ const templates: Template[] = [
     icon: 'Warehouse',
     gradient: 'gradient-blue',
     popular: true,
+    status: 'ready',
     features: [
       'Календарь с доступными слотами',
       'Бронирование времени разгрузки',
@@ -365,11 +373,23 @@ const TemplatesTab = () => {
             key={template.id}
             className="p-6 glass-card hover:scale-[1.02] transition-all duration-300 relative overflow-hidden"
           >
-            {template.popular && (
-              <Badge className="absolute top-4 right-4 bg-gradient-to-r from-orange-500 to-red-500">
-                🔥 Популярный
-              </Badge>
-            )}
+            <div className="absolute top-4 right-4 flex gap-2">
+              {template.popular && (
+                <Badge className="bg-gradient-to-r from-orange-500 to-red-500">
+                  🔥 Популярный
+                </Badge>
+              )}
+              {template.status === 'development' && (
+                <Badge variant="outline" className="bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400">
+                  🚧 В разработке
+                </Badge>
+              )}
+              {template.status === 'ready' && (
+                <Badge variant="outline" className="bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400">
+                  ✅ Готов
+                </Badge>
+              )}
+            </div>
 
             <div className="flex items-start gap-4 mb-4">
               <div className={`w-14 h-14 rounded-xl ${template.gradient} flex items-center justify-center flex-shrink-0`}>
@@ -409,11 +429,12 @@ const TemplatesTab = () => {
                 className="flex-1" 
                 size="sm"
                 onClick={() => handleSelectTemplate(template.id)}
+                disabled={template.status === 'development'}
               >
                 <Icon name="Plus" size={14} className="mr-2" />
                 {template.id === 'gpt' ? 'Настроить GPT' : template.id === 'warehouse' ? 'Открыть демо' : 'Создать бота'}
               </Button>
-              <Button variant="outline" size="sm" title="Документация">
+              <Button variant="outline" size="sm" title="Документация" disabled={template.status === 'development'}>
                 <Icon name="FileText" size={14} />
               </Button>
             </div>
