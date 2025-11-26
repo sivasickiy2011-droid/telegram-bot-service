@@ -231,6 +231,9 @@ def create_main_menu_keyboard(payment_enabled: bool = True, button_texts: dict =
     if button_texts is None:
         button_texts = {}
     
+    print(f"[DEBUG] create_main_menu_keyboard - payment_enabled: {payment_enabled}")
+    print(f"[DEBUG] create_main_menu_keyboard - button_texts: {button_texts}")
+    
     free_key_text = button_texts.get('free_key', '🎁 Получить бесплатный ключ')
     keyboard_buttons = [
         [KeyboardButton(text=free_key_text)],
@@ -242,12 +245,18 @@ def create_main_menu_keyboard(payment_enabled: bool = True, button_texts: dict =
         privacy_text = button_texts.get('privacy', '📄 Согласие на обработку данных')
         help_text = button_texts.get('help', '❓ Помощь')
         
+        print(f"[DEBUG] Adding payment buttons: secret_shop={secret_shop_text}, buy_vip={buy_vip_text}")
+        
         keyboard_buttons.extend([
             [KeyboardButton(text=secret_shop_text)],
             [KeyboardButton(text=buy_vip_text)],
             [KeyboardButton(text=privacy_text)],
             [KeyboardButton(text=help_text)]
         ])
+    else:
+        print(f"[DEBUG] Payment disabled - NOT adding payment buttons")
+    
+    print(f"[DEBUG] Final keyboard_buttons count: {len(keyboard_buttons)}")
     
     keyboard = ReplyKeyboardMarkup(
         keyboard=keyboard_buttons,
@@ -263,6 +272,10 @@ async def cmd_start(message: types.Message, bot_id: int):
     payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
     message_texts = bot_settings.get('message_texts', {}) if bot_settings else {}
     button_texts = bot_settings.get('button_texts', {}) if bot_settings else {}
+    
+    print(f"[DEBUG Bot {bot_id}] /start command - payment_enabled: {payment_enabled}")
+    print(f"[DEBUG Bot {bot_id}] /start command - button_texts: {button_texts}")
+    print(f"[DEBUG Bot {bot_id}] /start command - message_texts: {message_texts}")
     
     welcome_text = message_texts.get('welcome', 
         "🚀 Привет! Я бот POLYTOPE.\n\n"
@@ -947,12 +960,17 @@ async def run_bot(bot_data: Dict):
         
         text = message.text
         
+        print(f"[DEBUG Bot {bot_id}] Received text: '{text}'")
+        print(f"[DEBUG Bot {bot_id}] Payment enabled: {payment_enabled}")
+        print(f"[DEBUG Bot {bot_id}] Button texts: {button_texts}")
+        
         free_key_text = button_texts.get('free_key', '🎁 Получить бесплатный ключ')
         if text == free_key_text or text == '🎁 Получить бесплатный ключ':
             await handle_free_key(message, bot_id)
             return
         
         if not payment_enabled:
+            print(f"[DEBUG Bot {bot_id}] Payment disabled, ignoring message")
             return
         
         secret_shop_text = button_texts.get('secret_shop', '🔐 Узнать про Тайную витрину')
