@@ -70,6 +70,10 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
   const [editPrivacyConsentEnabled, setEditPrivacyConsentEnabled] = useState(false);
   const [editPrivacyConsentText, setEditPrivacyConsentText] = useState('');
   const [editTelegramToken, setEditTelegramToken] = useState('');
+  const [editVipPromoEnabled, setEditVipPromoEnabled] = useState(false);
+  const [editVipPromoStartDate, setEditVipPromoStartDate] = useState('');
+  const [editVipPromoEndDate, setEditVipPromoEndDate] = useState('');
+  const [editVipPurchaseMessage, setEditVipPurchaseMessage] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
@@ -403,8 +407,16 @@ const UserBotsDialog = ({ open, onOpenChange, user }: UserBotsDialogProps) => {
         setEditPrivacyConsentText={setEditPrivacyConsentText}
         editTelegramToken={editTelegramToken}
         setEditTelegramToken={setEditTelegramToken}
+        editVipPromoEnabled={editVipPromoEnabled}
+        setEditVipPromoEnabled={setEditVipPromoEnabled}
+        editVipPromoStartDate={editVipPromoStartDate}
+        setEditVipPromoStartDate={setEditVipPromoStartDate}
+        editVipPromoEndDate={editVipPromoEndDate}
+        setEditVipPromoEndDate={setEditVipPromoEndDate}
+        editVipPurchaseMessage={editVipPurchaseMessage}
+        setEditVipPurchaseMessage={setEditVipPurchaseMessage}
         savingSettings={savingSettings}
-        onSaveSettings={handleSaveSettings}
+        onSave={handleSaveSettings}
       />
     </>
   );
