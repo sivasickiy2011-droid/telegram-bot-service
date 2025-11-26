@@ -1929,68 +1929,40 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if method == 'POST':
-        # Извлекаем bot_id из URL разными способами
+        # Извлекаем bot_id - он всегда последний сегмент URL после /webhook/
         bot_id = None
         
-        # Способ 1: из event.url
-        path = event.get('url', '')
-        if path and '/webhook/' in path:
-            try:
-                bot_id = int(path.split('/webhook/')[1].split('/')[0])
-            except:
-                pass
+        # Получаем все возможные источники path
+        paths_to_check = [
+            event.get('url', ''),
+            event.get('requestContext', {}).get('http', {}).get('path', ''),
+            event.get('path', ''),
+        ]
         
-        # Способ 2: из event.params (path params)
-        if not bot_id:
-            params = event.get('params', {})
-            if params and 'bot_id' in params:
-                try:
-                    bot_id = int(params['bot_id'])
-                except:
-                    pass
+        # Ищем bot_id в любом из путей
+        for path in paths_to_check:
+            if path and isinstance(path, str):
+                # Убираем query string если есть
+                path = path.split('?')[0]
+                # Берём последний сегмент пути
+                segments = [s for s in path.split('/') if s]
+                if segments:
+                    try:
+                        # Если последний сегмент - число, это bot_id
+                        bot_id = int(segments[-1])
+                        break
+                    except:
+                        pass
         
-        # Способ 3: из event.pathParams
+        # Если bot_id не найден, возвращаем понятный ответ Telegram
         if not bot_id:
-            path_params = event.get('pathParams', {})
-            if path_params and 'bot_id' in path_params:
-                try:
-                    bot_id = int(path_params['bot_id'])
-                except:
-                    pass
-        
-        # Способ 4: из requestContext (Yandex Cloud Functions)
-        if not bot_id:
-            request_context = event.get('requestContext', {})
-            http_context = request_context.get('http', {})
-            req_path = http_context.get('path', '')
-            if req_path and '/webhook/' in req_path:
-                try:
-                    bot_id = int(req_path.split('/webhook/')[1].split('/')[0])
-                except:
-                    pass
-        
-        # Если bot_id не найден, логируем event и возвращаем ошибку
-        if not bot_id:
-            print(f"[ERROR] Cannot extract bot_id from event. Event keys: {list(event.keys())}")
-            print(f"[ERROR] event.url: {event.get('url')}")
-            print(f"[ERROR] event.params: {event.get('params')}")
-            print(f"[ERROR] event.pathParams: {event.get('pathParams')}")
-            print(f"[ERROR] event.requestContext: {event.get('requestContext')}")
             return {
-                'statusCode': 400,
+                'statusCode': 200,
                 'headers': {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({
-                    'error': 'bot_id required in URL path: /webhook/{bot_id}',
-                    'debug': {
-                        'url': event.get('url'),
-                        'params': event.get('params'),
-                        'pathParams': event.get('pathParams'),
-                        'requestContext': event.get('requestContext')
-                    }
-                }),
+                'body': json.dumps({'ok': False, 'description': 'Bot ID not found in URL'}),
                 'isBase64Encoded': False
             }
         
