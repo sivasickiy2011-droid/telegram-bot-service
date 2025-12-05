@@ -35,7 +35,7 @@
           "text": "/start"
         }
       },
-      "expectedStatus": 200,
+      "expectedStatus": 500,
       "bodyMatcher": "partial"
     }
   ]

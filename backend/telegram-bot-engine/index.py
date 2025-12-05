@@ -10,22 +10,13 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.base import BaseStorage, StorageKey, StateType
-from aiogram.fsm.storage.memory import MemoryStorage
 import qrcode
 from io import BytesIO
 
 class BotStates(StatesGroup):
-    main_menu = State()
     waiting_for_last_name = State()
     waiting_for_first_name = State()
     waiting_for_phone = State()
-    browsing_catalog = State()
-    viewing_product = State()
-    in_cart = State()
-    checkout_address = State()
-    checkout_phone = State()
-    warehouse_selecting_date = State()
-    warehouse_selecting_time = State()
     warehouse_entering_phone = State()
     warehouse_entering_company = State()
     warehouse_entering_vehicle = State()
@@ -1720,141 +1711,6 @@ async def callback_handler(callback: types.CallbackQuery, bot_id: int, state: FS
         await cmd_start(callback.message, bot_id)
         await state.clear()
     await callback.answer()
-
-async def run_bot(bot_data: Dict):
-    '''Запускает один Telegram бот'''
-    bot = Bot(token=bot_data['telegram_token'])
-    storage = MemoryStorage()
-    dp = Dispatcher(storage=storage)
-    bot_id = bot_data['id']
-    
-    @dp.message(Command("start"))
-    async def start_handler(message: types.Message, state: FSMContext):
-        await cmd_start(message, bot_id)
-        await state.clear()
-    
-    @dp.message(BotStates.waiting_for_last_name)
-    async def last_name_handler(message: types.Message, state: FSMContext):
-        await process_last_name(message, state)
-    
-    @dp.message(BotStates.waiting_for_first_name)
-    async def first_name_handler(message: types.Message, state: FSMContext):
-        await process_first_name(message, state)
-    
-    @dp.message(BotStates.waiting_for_phone)
-    async def phone_handler(message: types.Message, state: FSMContext):
-        await process_phone_and_create_payment(message, state, bot)
-    
-    @dp.message(BotStates.warehouse_entering_phone)
-    async def warehouse_phone_handler(message: types.Message, state: FSMContext):
-        await process_warehouse_phone(message, state)
-    
-    @dp.message(BotStates.warehouse_entering_company)
-    async def warehouse_company_handler(message: types.Message, state: FSMContext):
-        await process_warehouse_company(message, state)
-    
-    @dp.message(BotStates.warehouse_entering_vehicle)
-    async def warehouse_vehicle_handler(message: types.Message, state: FSMContext):
-        await process_warehouse_vehicle(message, state)
-    
-    @dp.message(BotStates.warehouse_entering_cargo)
-    async def warehouse_cargo_handler(message: types.Message, state: FSMContext):
-        await process_warehouse_cargo_and_confirm(message, state, bot)
-    
-    @dp.message(F.text)
-    async def text_handler(message: types.Message, state: FSMContext):
-        bot_settings = get_bot_settings(bot_id)
-        payment_enabled = bot_settings.get('payment_enabled', True) if bot_settings else True
-        button_texts = bot_settings.get('button_texts', {}) if bot_settings else {}
-        bot_template = bot_settings.get('template', 'keys') if bot_settings else 'keys'
-        
-        text = message.text
-        
-        print(f"[DEBUG Bot {bot_id}] Received text: '{text}'")
-        print(f"[DEBUG Bot {bot_id}] Payment enabled: {payment_enabled}")
-        print(f"[DEBUG Bot {bot_id}] Button texts: {button_texts}")
-        print(f"[DEBUG Bot {bot_id}] Template: {bot_template}")
-        
-        if bot_template == 'keys':
-            free_key_text = button_texts.get('free_key', '🎁 Получить бесплатный ключ')
-            if text == free_key_text or text == '🎁 Получить бесплатный ключ':
-                await handle_free_key(message, bot_id)
-                return
-            
-            if payment_enabled:
-                secret_shop_text = button_texts.get('secret_shop', '🔐 Узнать про Тайную витрину')
-                if text == secret_shop_text or text == '🔐 Узнать про Тайную витрину':
-                    await handle_secret_shop(message, bot_id)
-                    return
-                
-                buy_vip_text = button_texts.get('buy_vip', '💎 Купить VIP-ключ')
-                if text == buy_vip_text or text == '💎 Купить VIP-ключ':
-                    await handle_buy_vip(message, bot_id, state, bot)
-                    return
-            
-            privacy_text = button_texts.get('privacy', '📄 Согласие на обработку данных')
-            if text == privacy_text or text == '📄 Согласие на обработку данных':
-                await handle_privacy_policy(message, bot_id)
-                return
-            
-            help_text = button_texts.get('help', '❓ Помощь')
-            if text == help_text or text == '❓ Помощь':
-                await handle_help(message)
-                return
-        
-        if bot_template == 'shop':
-            if text == '🛍 Каталог' or text == '🛍️ Каталог товаров':
-                await handle_shop_catalog(message, bot_id)
-                return
-            
-            if text == '🛒 Корзина':
-                await handle_view_cart(message, bot_id)
-                return
-            
-            if text == '⬅ Главное меню':
-                await cmd_start(message, bot_id)
-                return
-            
-            categories = get_shop_categories(bot_id)
-            for cat in categories:
-                emoji = cat.get('emoji', '📦')
-                button_text = f"{emoji} {cat['name']}"
-                if text == button_text or text == cat['name']:
-                    await handle_category_products(message, bot_id, cat['name'])
-                    return
-        
-        if bot_template == 'warehouse':
-            if text == '📅 Забронировать время':
-                await handle_warehouse_booking_start(message, bot_id, state)
-                return
-            
-            if text == '📋 Мои бронирования':
-                await handle_warehouse_my_bookings(message, bot_id)
-                return
-            
-            if text == 'ℹ️ Информация':
-                await handle_warehouse_info(message, bot_id)
-                return
-    
-    @dp.callback_query()
-    async def callback_handler_wrapper(callback: types.CallbackQuery, state: FSMContext):
-        await callback_handler(callback, bot_id, state, bot)
-    
-    print(f"✅ Bot '{bot_data['name']}' (ID: {bot_id}) started")
-    await dp.start_polling(bot, skip_updates=True)
-
-async def main():
-    '''Главная функция - запускает все активные боты'''
-    active_bots = get_active_bots()
-    
-    if not active_bots:
-        print("⚠️ No active bots found in database")
-        return
-    
-    print(f"🚀 Starting {len(active_bots)} bot(s)...")
-    
-    tasks = [run_bot(bot_data) for bot_data in active_bots]
-    await asyncio.gather(*tasks)
 
 async def process_update(bot_id: int, update_data: Dict[str, Any]) -> None:
     '''Обрабатывает один Update от Telegram webhook'''
